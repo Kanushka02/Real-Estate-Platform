@@ -1,71 +1,70 @@
 package com.srilanka.realestate.security;
-import io.jsonwebtoken.*;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 @Component
+@SuppressWarnings("deprecation")
 public class JwtUtil {
 
-    // Secret key for JWT (in real app, this should be in environment variables)
-    private final String jwtSecret = "mySecretKey1234567890123456789012345678901234567890";
+    private String secret = "mySecretKey";
+    private int jwtExpiration = 86400; // 24 hours in seconds
 
-    // JWT expiration time (24 hours)
-    private final int jwtExpirationMs = 86400000;
+    // Generate token for user
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, userDetails.getUsername());
+    }
 
-    // Generate JWT token from user email and role
-    @SuppressWarnings("deprecation")
-    public String generateToken(String email, String role) {
+    // Create token with claims
+    private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .setSubject(email)
-                .claim("role", role)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration * 1000))
+                .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }
 
-    // Extract email from JWT token
-    public String getEmailFromToken(String token) {
-        return Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+    // Get username from token
+    public String getUsernameFromToken(String token) {
+        return getClaimFromToken(token, Claims::getSubject);
     }
 
-    // Extract role from JWT token
-    public String getRoleFromToken(String token) {
-        return Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
+    // Get expiration date from token
+    public Date getExpirationDateFromToken(String token) {
+        return getClaimFromToken(token, Claims::getExpiration);
+    }
+
+    // Get specific claim from token
+    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = getAllClaimsFromToken(token);
+        return claimsResolver.apply(claims);
+    }
+
+    // Get all claims from token
+    private Claims getAllClaimsFromToken(String token) {
+        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
     }
 
     // Check if token is expired
-    public Boolean isTokenExpired(String token) {
-        try {
-            Date expiration = Jwts.parser()
-                    .setSigningKey(jwtSecret)
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getExpiration();
-            return expiration.before(new Date());
-        } catch (Exception e) {
-            return true;
-        }
+    private Boolean isTokenExpired(String token) {
+        final Date expiration = getExpirationDateFromToken(token);
+        return expiration.before(new Date());
     }
 
-    // Validate JWT token
-    public Boolean validateToken(String token) {
-        try {
-            Jwts.parser()
-                    .setSigningKey(jwtSecret)
-                    .parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            System.out.println("JWT validation error: " + e.getMessage());
-            return false;
-        }
+    // Validate token
+    public Boolean validateToken(String token, UserDetails userDetails) {
+        final String username = getUsernameFromToken(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 }

@@ -6,14 +6,12 @@ public class RegisterRequest {
     private String email;
     private String password;
     private String phone;
-    private String role; // BUYER or SELLER
+    private String role;
 
     // Constructors
-    public RegisterRequest() {
-    }
+    public RegisterRequest() {}
 
-    public RegisterRequest(String firstName, String lastName, String email,
-                           String password, String phone, String role) {
+    public RegisterRequest(String firstName, String lastName, String email, String password, String phone, String role) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;

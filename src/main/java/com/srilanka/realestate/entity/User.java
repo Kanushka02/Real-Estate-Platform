@@ -1,6 +1,5 @@
 package com.srilanka.realestate.entity;
 
-
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -44,12 +43,27 @@ public class User {
     public User() {
     }
 
-    // Constructor with parameters
+    // Constructor with 4 parameters - NEEDED FOR DataController
     public User(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
+        this.role = "BUYER"; // default role
+        this.isActive = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Constructor with all parameters
+    public User(String firstName, String lastName, String email, String password, String phone, String role) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.phone = phone;
+        this.role = role;
+        this.isActive = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -119,6 +133,15 @@ public class User {
         this.isActive = isActive;
     }
 
+    // Additional getter for compatibility
+    public Boolean getActive() {
+        return isActive;
+    }
+
+    public void setActive(Boolean active) {
+        isActive = active;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -133,5 +156,22 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // Utility method to get full name
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
+    // Automatically set timestamps before persisting
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
