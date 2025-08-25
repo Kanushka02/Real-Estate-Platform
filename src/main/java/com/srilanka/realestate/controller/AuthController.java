@@ -1,12 +1,5 @@
 package com.srilanka.realestate.controller;
 
-import com.srilanka.realestate.dto.AuthResponse;
-import com.srilanka.realestate.dto.LoginRequest;
-import com.srilanka.realestate.dto.RegisterRequest;
-import com.srilanka.realestate.entity.User;
-import com.srilanka.realestate.repository.UserRepository;
-import com.srilanka.realestate.security.JwtUtil;
-import com.srilanka.realestate.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,9 +7,23 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Optional;
+import com.srilanka.realestate.dto.AuthResponse;
+import com.srilanka.realestate.dto.LoginRequest;
+import com.srilanka.realestate.dto.RegisterRequest;
+import com.srilanka.realestate.entity.User;
+import com.srilanka.realestate.repository.UserRepository;
+import com.srilanka.realestate.security.JwtUtil;
+import com.srilanka.realestate.service.CustomUserDetailsService;
+
+// import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")

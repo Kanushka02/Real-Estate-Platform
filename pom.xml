@@ -48,12 +48,11 @@
 		</dependency>
 
         <!-- Add these dependencies to your existing pom.xml file -->
-        <!-- JWT Dependencies -->
-        <!-- JWT Dependencies - Older Stable Version -->
+        <!-- JWT Dependencies - Updated to consistent versions -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt</artifactId>
-            <version>0.9.1</version>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.3</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

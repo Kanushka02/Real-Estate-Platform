@@ -1,12 +1,18 @@
 package com.srilanka.realestate.controller;
 
-import com.srilanka.realestate.entity.Property;
-import com.srilanka.realestate.repository.PropertyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.srilanka.realestate.entity.Property;
+import com.srilanka.realestate.repository.PropertyRepository;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -17,77 +23,148 @@ public class PropertyController {
 
     // Get all properties
     @GetMapping("/all")
-    public List<Property> getAllProperties() {
-        return propertyRepository.findAll();
+    public ResponseEntity<List<Property>> getAllProperties() {
+        try {
+            List<Property> properties = propertyRepository.findAll();
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get active properties only
     @GetMapping("/active")
-    public List<Property> getActiveProperties() {
-        return propertyRepository.findByStatus("ACTIVE");
+    public ResponseEntity<List<Property>> getActiveProperties() {
+        try {
+            List<Property> properties = propertyRepository.findByStatus("ACTIVE");
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get properties for sale
     @GetMapping("/for-sale")
-    public List<Property> getPropertiesForSale() {
-        return propertyRepository.findByPropertyType("SALE");
+    public ResponseEntity<List<Property>> getPropertiesForSale() {
+        try {
+            List<Property> properties = propertyRepository.findByPropertyType("SALE");
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get properties for rent
     @GetMapping("/for-rent")
-    public List<Property> getPropertiesForRent() {
-        return propertyRepository.findByPropertyType("RENT");
+    public ResponseEntity<List<Property>> getPropertiesForRent() {
+        try {
+            List<Property> properties = propertyRepository.findByPropertyType("RENT");
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get featured properties
     @GetMapping("/featured")
-    public List<Property> getFeaturedProperties() {
-        return propertyRepository.findByStatusAndFeaturedTrue("ACTIVE");
+    public ResponseEntity<List<Property>> getFeaturedProperties() {
+        try {
+            List<Property> properties = propertyRepository.findByStatusAndFeaturedTrue("ACTIVE");
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get properties by district (like: /api/properties/district/Colombo)
     @GetMapping("/district/{district}")
-    public List<Property> getPropertiesByDistrict(@PathVariable String district) {
-        return propertyRepository.findActivePropertiesInDistrict(district);
+    public ResponseEntity<List<Property>> getPropertiesByDistrict(@PathVariable String district) {
+        try {
+            if (district == null || district.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<Property> properties = propertyRepository.findActivePropertiesInDistrict(district);
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get properties within price range
     @GetMapping("/price-range")
-    public List<Property> getPropertiesByPriceRange(
+    public ResponseEntity<List<Property>> getPropertiesByPriceRange(
             @RequestParam BigDecimal minPrice,
             @RequestParam BigDecimal maxPrice) {
-        return propertyRepository.findByPriceBetween(minPrice, maxPrice);
+        try {
+            if (minPrice == null || maxPrice == null || minPrice.compareTo(maxPrice) > 0) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<Property> properties = propertyRepository.findByPriceBetween(minPrice, maxPrice);
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get properties by bedrooms
     @GetMapping("/bedrooms/{bedrooms}")
-    public List<Property> getPropertiesByBedrooms(@PathVariable Integer bedrooms) {
-        return propertyRepository.findByBedrooms(bedrooms);
+    public ResponseEntity<List<Property>> getPropertiesByBedrooms(@PathVariable Integer bedrooms) {
+        try {
+            if (bedrooms == null || bedrooms < 0) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<Property> properties = propertyRepository.findByBedrooms(bedrooms);
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Search properties by title
     @GetMapping("/search")
-    public List<Property> searchProperties(@RequestParam String keyword) {
-        return propertyRepository.findByTitleContainingIgnoreCase(keyword);
+    public ResponseEntity<List<Property>> searchProperties(@RequestParam String keyword) {
+        try {
+            if (keyword == null || keyword.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<Property> properties = propertyRepository.findByTitleContainingIgnoreCase(keyword);
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Advanced search with multiple filters
     @GetMapping("/filter")
-    public List<Property> getPropertiesWithFilters(
+    public ResponseEntity<List<Property>> getPropertiesWithFilters(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String district,
             @RequestParam(required = false) String propertyType,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice) {
 
-        return propertyRepository.findPropertiesWithFilters(
-                category, district, propertyType, minPrice, maxPrice);
+        try {
+            // Validate price range if both are provided
+            if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            List<Property> properties = propertyRepository.findPropertiesWithFilters(
+                    category, district, propertyType, minPrice, maxPrice);
+            return ResponseEntity.ok(properties);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Get property count
     @GetMapping("/count")
-    public String getPropertyCount() {
-        long count = propertyRepository.count();
-        return "Total properties: " + count;
+    public ResponseEntity<String> getPropertyCount() {
+        try {
+            long count = propertyRepository.count();
+            return ResponseEntity.ok("Total properties: " + count);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
