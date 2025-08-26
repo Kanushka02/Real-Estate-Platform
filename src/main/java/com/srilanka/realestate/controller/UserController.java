@@ -1,14 +1,17 @@
 package com.srilanka.realestate.controller;
 
-import com.srilanka.realestate.entity.User;
-import com.srilanka.realestate.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.srilanka.realestate.entity.User;
+import com.srilanka.realestate.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api/users")
@@ -54,5 +57,15 @@ public class UserController {
     public String getUserCount() {
         long count = userRepository.count();
         return "Total users in database: " + count;
+    }
+
+    // Get current authenticated user's profile
+    @GetMapping("/profile")
+    public User getProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new RuntimeException("No authenticated user");
+        }
+        return userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

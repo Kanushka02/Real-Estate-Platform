@@ -69,7 +69,7 @@ public class PropertyController {
     @GetMapping("/featured")
     public ResponseEntity<List<Property>> getFeaturedProperties() {
         try {
-            List<Property> properties = propertyRepository.findByStatusAndFeaturedTrue("ACTIVE");
+            List<Property> properties = propertyRepository.findByFeaturedTrueAndStatus("ACTIVE");
             return ResponseEntity.ok(properties);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -83,7 +83,7 @@ public class PropertyController {
             if (district == null || district.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            List<Property> properties = propertyRepository.findActivePropertiesInDistrict(district);
+            List<Property> properties = propertyRepository.findByLocationDistrict(district);
             return ResponseEntity.ok(properties);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -113,7 +113,7 @@ public class PropertyController {
             if (bedrooms == null || bedrooms < 0) {
                 return ResponseEntity.badRequest().build();
             }
-            List<Property> properties = propertyRepository.findByBedrooms(bedrooms);
+            List<Property> properties = propertyRepository.findByBedroomsAndStatus(bedrooms, "ACTIVE");
             return ResponseEntity.ok(properties);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -127,30 +127,29 @@ public class PropertyController {
             if (keyword == null || keyword.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            List<Property> properties = propertyRepository.findByTitleContainingIgnoreCase(keyword);
+            List<Property> properties = propertyRepository.findByTitleOrDescriptionContaining(keyword);
             return ResponseEntity.ok(properties);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    // Advanced search with multiple filters
+    // Advanced search with multiple filters (district/city/type/bedrooms)
     @GetMapping("/filter")
     public ResponseEntity<List<Property>> getPropertiesWithFilters(
-            @RequestParam(required = false) String category,
             @RequestParam(required = false) String district,
+            @RequestParam(required = false) String city,
             @RequestParam(required = false) String propertyType,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice) {
+            @RequestParam(required = false) Integer minBedrooms,
+            @RequestParam(required = false) Integer maxBedrooms) {
 
         try {
-            // Validate price range if both are provided
-            if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            if (minBedrooms != null && maxBedrooms != null && minBedrooms > maxBedrooms) {
                 return ResponseEntity.badRequest().build();
             }
-            
+
             List<Property> properties = propertyRepository.findPropertiesWithFilters(
-                    category, district, propertyType, minPrice, maxPrice);
+                    district, city, propertyType, minBedrooms, maxBedrooms);
             return ResponseEntity.ok(properties);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();

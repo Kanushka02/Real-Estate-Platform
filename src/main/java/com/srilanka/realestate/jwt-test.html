@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropertyLK - JWT Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 3px; white-space: pre-wrap; }
+        .error { background: #ffeaea; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .token-display { background: #fff3cd; padding: 10px; border-radius: 3px; word-break: break-all; }
+    </style>
+</head>
+<body>
+<h1>PropertyLK - JWT Authentication Test</h1>
+
+<!-- Step 1: Authentication -->
+<div class="container">
+    <h3>Step 1: Get JWT Token</h3>
+    <button onclick="registerAndLogin()">Register & Login Test User</button>
+    <div id="authResult"></div>
+</div>
+
+<!-- Step 2: Token Display -->
+<div class="container">
+    <h3>Step 2: JWT Token</h3>
+    <div id="tokenDisplay" class="token-display">No token yet - click "Register & Login" first</div>
+</div>
+
+<!-- Step 3: Test Secure Endpoints -->
+<div class="container">
+    <h3>Step 3: Test Secure Property Endpoints</h3>
+    <button onclick="createTestProperty()">Create Test Property</button>
+    <button onclick="getMyProperties()">Get My Properties</button>
+    <button onclick="getLocations()">Get Locations</button>
+    <button onclick="getCategories()">Get Categories</button>
+    <div id="secureResult"></div>
+</div>
+
+<!-- Step 4: Create Custom Property -->
+<div class="container">
+    <h3>Step 4: Create Custom Property</h3>
+    <input type="text" id="title" placeholder="Property Title" value="Beautiful House in Nugegoda">
+    <textarea id="description" placeholder="Description">Modern 3BR house with all amenities</textarea>
+    <input type="number" id="price" placeholder="Price (LKR)" value="25000000">
+    <select id="propertyType">
+        <option value="SALE">For Sale</option>
+        <option value="RENT">For Rent</option>
+    </select>
+    <input type="number" id="bedrooms" placeholder="Bedrooms" value="3">
+    <input type="number" id="bathrooms" placeholder="Bathrooms" value="2">
+    <input type="number" id="areaSqft" placeholder="Area (sqft)" value="1800">
+    <input type="text" id="address" placeholder="Address" value="123 Nugegoda Road">
+    <input type="number" id="locationId" placeholder="Location ID (1-14)" value="4">
+    <input type="number" id="categoryId" placeholder="Category ID (1-4)" value="1">
+    <button onclick="createCustomProperty()">Create Property</button>
+    <div id="customResult"></div>
+</div>
+
+<script>
+    let jwtToken = '';
+    const baseUrl = 'http://localhost:8082/api';
+
+    async function registerAndLogin() {
+        try {
+            // First register a seller
+            const registerResponse = await fetch(`${baseUrl}/auth/test-register-2`);
+            const registerData = await registerResponse.json();
+
+            if (registerData.success) {
+                jwtToken = registerData.token;
+                document.getElementById('tokenDisplay').textContent = `Token: ${jwtToken}`;
+                document.getElementById('authResult').innerHTML =
+                    '<div class="result">✅ Successfully registered seller and got JWT token!</div>';
+            } else {
+                // Try login if user already exists
+                const loginResponse = await fetch(`${baseUrl}/auth/test-login`);
+                const loginData = await loginResponse.json();
+
+                if (loginData.success) {
+                    jwtToken = loginData.token;
+                    document.getElementById('tokenDisplay').textContent = `Token: ${jwtToken}`;
+                    document.getElementById('authResult').innerHTML =
+                        '<div class="result">✅ Successfully logged in and got JWT token!</div>';
+                } else {
+                    throw new Error('Both register and login failed');
+                }
+            }
+        } catch (error) {
+            document.getElementById('authResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+
+    async function createTestProperty() {
+        if (!jwtToken) {
+            alert('Please get JWT token first!');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/properties/secure/test-create`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            document.getElementById('secureResult').innerHTML =
+                `<div class="result">Create Test Property Response:\n${JSON.stringify(data, null, 2)}</div>`;
+        } catch (error) {
+            document.getElementById('secureResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+
+    async function getMyProperties() {
+        if (!jwtToken) {
+            alert('Please get JWT token first!');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/properties/secure/my-properties`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            document.getElementById('secureResult').innerHTML =
+                `<div class="result">My Properties:\n${JSON.stringify(data, null, 2)}</div>`;
+        } catch (error) {
+            document.getElementById('secureResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+
+    async function getLocations() {
+        try {
+            const response = await fetch(`${baseUrl}/properties/secure/locations`);
+            const data = await response.json();
+            document.getElementById('secureResult').innerHTML =
+                `<div class="result">Locations:\n${JSON.stringify(data, null, 2)}</div>`;
+        } catch (error) {
+            document.getElementById('secureResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+
+    async function getCategories() {
+        try {
+            const response = await fetch(`${baseUrl}/properties/secure/categories`);
+            const data = await response.json();
+            document.getElementById('secureResult').innerHTML =
+                `<div class="result">Categories:\n${JSON.stringify(data, null, 2)}</div>`;
+        } catch (error) {
+            document.getElementById('secureResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+
+    async function createCustomProperty() {
+        if (!jwtToken) {
+            alert('Please get JWT token first!');
+            return;
+        }
+
+        const propertyData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            price: parseFloat(document.getElementById('price').value),
+            propertyType: document.getElementById('propertyType').value,
+            bedrooms: parseInt(document.getElementById('bedrooms').value),
+            bathrooms: parseInt(document.getElementById('bathrooms').value),
+            areaSqft: parseInt(document.getElementById('areaSqft').value),
+            address: document.getElementById('address').value,
+            locationId: parseInt(document.getElementById('locationId').value),
+            categoryId: parseInt(document.getElementById('categoryId').value)
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/properties/secure/create`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(propertyData)
+            });
+
+            const data = await response.json();
+            document.getElementById('customResult').innerHTML =
+                `<div class="result">Create Property Response:\n${JSON.stringify(data, null, 2)}</div>`;
+        } catch (error) {
+            document.getElementById('customResult').innerHTML =
+                `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+    }
+</script>
+</body>
+</html>

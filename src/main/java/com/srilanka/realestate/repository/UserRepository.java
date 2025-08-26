@@ -2,7 +2,6 @@ package com.srilanka.realestate.repository;
 
 import com.srilanka.realestate.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,30 +10,34 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Spring Boot automatically provides these methods:
-    // save(user) - saves a user
-    // findById(id) - finds user by ID
-    // findAll() - gets all users
-    // deleteById(id) - deletes user by ID
-
-    // Custom methods we're adding:
-
-    // Find user by email (for login)
+    // Find user by email (for authentication)
     Optional<User> findByEmail(String email);
 
-    // Find users by role (BUYER, SELLER, ADMIN)
+    // Find users by role
     List<User> findByRole(String role);
 
-    // Find active users only
-    List<User> findByIsActiveTrue();
+    // Find active/inactive users
+    List<User> findByIsActive(Boolean isActive);
 
-    // Find users by first name (like search)
+    // Count methods for admin dashboard
+    long countByIsActive(Boolean isActive);
+    long countByRole(String role);
+
+    // Search users by name or email (for admin search)
+    List<User> findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+            String email, String firstName, String lastName);
+
+    // Find recent users (for admin dashboard)
+    List<User> findTop10ByOrderByCreatedAtDesc();
+
+    // Find users by partial email match
+    List<User> findByEmailContainingIgnoreCase(String email);
+
+    // Find users by name patterns
     List<User> findByFirstNameContainingIgnoreCase(String firstName);
+    List<User> findByLastNameContainingIgnoreCase(String lastName);
 
-    // Custom query - count users by role
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = ?1")
-    Long countByRole(String role);
-
-    // Check if email already exists (for registration)
-    boolean existsByEmail(String email);
+    // Count users created today (you can implement this with @Query if needed)
+    // @Query("SELECT COUNT(u) FROM User u WHERE DATE(u.createdAt) = CURRENT_DATE")
+    // long countUsersCreatedToday();
 }
