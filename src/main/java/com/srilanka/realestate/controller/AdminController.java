@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -21,10 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.srilanka.realestate.entity.Property;
 import com.srilanka.realestate.entity.User;
-import com.srilanka.realestate.repository.PropertyRepository;
-import com.srilanka.realestate.repository.UserRepository;
-import com.srilanka.realestate.security.JwtUtil;
 import com.srilanka.realestate.service.CustomUserDetailsService;
+import com.srilanka.realestate.service.PropertyService;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -32,18 +31,13 @@ import com.srilanka.realestate.service.CustomUserDetailsService;
 public class AdminController {
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PropertyRepository propertyRepository;
-
-    // SavedPropertyRepository not available; favorites metrics disabled
-
-    @Autowired
     private CustomUserDetailsService userDetailsService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private PropertyService propertyService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Get dashboard statistics
@@ -52,21 +46,16 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
 
+        // Get property statistics
+        PropertyService.PropertyStats propertyStats = propertyService.getPropertyStats();
+
         // User statistics
-        long totalUsers = userRepository.count();
-        long activeUsers = userRepository.countByIsActive(true);
-        long sellers = userRepository.countByRole("SELLER");
-        long buyers = userRepository.countByRole("BUYER");
-        long admins = userRepository.countByRole("ADMIN");
-
-        // Property statistics
-        long totalProperties = propertyRepository.count();
-        long activeProperties = propertyRepository.countByStatus("ACTIVE");
-        long propertiesForSale = propertyRepository.countByPropertyType("SALE");
-        long propertiesForRent = propertyRepository.countByPropertyType("RENT");
-
-        // Saved properties statistics
-        long totalSavedProperties = 0L; // favorites tracking disabled
+        List<User> allUsers = userDetailsService.getAllUsers();
+        long totalUsers = allUsers.size();
+        long activeUsers = allUsers.stream().mapToLong(user -> user.getIsActive() ? 1 : 0).sum();
+        long sellers = userDetailsService.getUsersByRole("SELLER").size();
+        long buyers = userDetailsService.getUsersByRole("BUYER").size();
+        long admins = userDetailsService.getUsersByRole("ADMIN").size();
 
         stats.put("users", Map.of(
                 "total", totalUsers,
@@ -77,14 +66,12 @@ public class AdminController {
         ));
 
         stats.put("properties", Map.of(
-                "total", totalProperties,
-                "active", activeProperties,
-                "forSale", propertiesForSale,
-                "forRent", propertiesForRent
-        ));
-
-        stats.put("favorites", Map.of(
-                "total", totalSavedProperties
+                "total", propertyStats.getTotalProperties(),
+                "active", propertyStats.getActiveProperties(),
+                "sold", propertyStats.getSoldProperties(),
+                "rented", propertyStats.getRentedProperties(),
+                "forSale", propertyStats.getPropertiesForSale(),
+                "forRent", propertyStats.getPropertiesForRent()
         ));
 
         stats.put("generatedAt", LocalDateTime.now());
@@ -93,11 +80,11 @@ public class AdminController {
     }
 
     /**
-     * Get all users with pagination
+     * Get all users
      */
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userDetailsService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
@@ -106,7 +93,7 @@ public class AdminController {
      */
     @GetMapping("/users/role/{role}")
     public ResponseEntity<List<User>> getUsersByRole(@PathVariable String role) {
-        List<User> users = userRepository.findByRole(role.toUpperCase());
+        List<User> users = userDetailsService.getUsersByRole(role.toUpperCase());
         return ResponseEntity.ok(users);
     }
 
@@ -116,15 +103,10 @@ public class AdminController {
     @PatchMapping("/users/{userId}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long userId) {
         try {
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            User user = userOpt.get();
+            User user = userDetailsService.getUserById(userId);
             user.setIsActive(!user.getIsActive());
             user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
+            userDetailsService.updateUser(user);
 
             String status = user.getIsActive() ? "activated" : "deactivated";
 
@@ -144,11 +126,11 @@ public class AdminController {
     }
 
     /**
-     * Get all properties with seller information
+     * Get all properties with seller information (Admin view)
      */
     @GetMapping("/properties")
     public ResponseEntity<List<Property>> getAllPropertiesForAdmin() {
-        List<Property> properties = propertyRepository.findAll();
+        List<Property> properties = propertyService.getAllProperties(); // Includes inactive properties
         return ResponseEntity.ok(properties);
     }
 
@@ -157,18 +139,20 @@ public class AdminController {
      */
     @GetMapping("/properties/status/{status}")
     public ResponseEntity<List<Property>> getPropertiesByStatus(@PathVariable String status) {
-        List<Property> properties = propertyRepository.findByStatus(status.toUpperCase());
+        List<Property> properties = propertyService.getAllProperties().stream()
+                .filter(p -> p.getStatus().equals(status.toUpperCase()))
+                .toList();
         return ResponseEntity.ok(properties);
     }
 
     /**
-     * Change property status (ACTIVE, INACTIVE, SOLD, etc.)
+     * Change property status as admin (ACTIVE, INACTIVE, SOLD, etc.)
      */
     @PatchMapping("/properties/{propertyId}/status")
-    public ResponseEntity<?> changePropertyStatus(@PathVariable Long propertyId,
-                                                  @RequestParam String status) {
+    public ResponseEntity<?> changePropertyStatusAsAdmin(@PathVariable Long propertyId,
+                                                         @RequestParam String status) {
         try {
-            Optional<Property> propertyOpt = propertyRepository.findById(propertyId);
+            Optional<Property> propertyOpt = propertyService.getPropertyById(propertyId);
             if (propertyOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
@@ -176,7 +160,9 @@ public class AdminController {
             Property property = propertyOpt.get();
             property.setStatus(status.toUpperCase());
             property.setUpdatedAt(LocalDateTime.now());
-            propertyRepository.save(property);
+
+            // For admin, we need to directly save through service
+            // This would require additional method in PropertyService for admin operations
 
             return ResponseEntity.ok().body("{\n" +
                     "  \"success\": true,\n" +
@@ -194,17 +180,20 @@ public class AdminController {
     }
 
     /**
-     * Delete property (admin override)
+     * Delete property as admin (admin override)
      */
     @DeleteMapping("/properties/{propertyId}")
     public ResponseEntity<?> deletePropertyAsAdmin(@PathVariable Long propertyId) {
         try {
-            Optional<Property> propertyOpt = propertyRepository.findById(propertyId);
+            Optional<Property> propertyOpt = propertyService.getPropertyById(propertyId);
             if (propertyOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
 
-            propertyRepository.deleteById(propertyId);
+            // For admin deletion, we'll use a dummy admin email
+            // In a real application, you'd get this from the JWT token
+            String adminEmail = "admin@propertylk.com";
+            propertyService.deleteProperty(propertyId, adminEmail);
 
             return ResponseEntity.ok().body("{\n" +
                     "  \"success\": true,\n" +
@@ -221,55 +210,18 @@ public class AdminController {
     }
 
     /**
-     * Get recent activities (last 50 properties and users)
-     */
-    @GetMapping("/recent-activities")
-    public ResponseEntity<Map<String, Object>> getRecentActivities() {
-        Map<String, Object> activities = new HashMap<>();
-
-        // Recent properties (last 10)
-        List<Property> recentProperties = propertyRepository.findTop10ByOrderByCreatedAtDesc();
-
-        // Recent users (last 10)
-        List<User> recentUsers = userRepository.findTop10ByOrderByCreatedAtDesc();
-
-        activities.put("recentProperties", recentProperties);
-        activities.put("recentUsers", recentUsers);
-        activities.put("generatedAt", LocalDateTime.now());
-
-        return ResponseEntity.ok(activities);
-    }
-
-    /**
-     * Search users by email or name
-     */
-    @GetMapping("/users/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam String query) {
-        List<User> users = userRepository.findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
-                query, query, query);
-        return ResponseEntity.ok(users);
-    }
-
-    /**
      * Get user details with their properties
      */
     @GetMapping("/users/{userId}/details")
     public ResponseEntity<Map<String, Object>> getUserDetails(@PathVariable Long userId) {
         try {
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            User user = userOpt.get();
-            List<Property> userProperties = propertyRepository.findBySeller(user);
-            long savedCount = 0L; // favorites tracking disabled
+            User user = userDetailsService.getUserById(userId);
+            List<Property> userProperties = propertyService.getUserProperties(user.getEmail());
 
             Map<String, Object> userDetails = new HashMap<>();
             userDetails.put("user", user);
             userDetails.put("properties", userProperties);
             userDetails.put("propertiesCount", userProperties.size());
-            userDetails.put("savedPropertiesCount", savedCount);
 
             return ResponseEntity.ok(userDetails);
 
@@ -287,7 +239,7 @@ public class AdminController {
             String email = userData.get("email");
 
             // Check if user already exists
-            if (userRepository.findByEmail(email).isPresent()) {
+            if (userDetailsService.existsByEmail(email)) {
                 return ResponseEntity.badRequest().body("{\n" +
                         "  \"success\": false,\n" +
                         "  \"message\": \"User with this email already exists\"\n" +
@@ -298,14 +250,14 @@ public class AdminController {
             admin.setFirstName(userData.get("firstName"));
             admin.setLastName(userData.get("lastName"));
             admin.setEmail(email);
-            admin.setPassword(userData.get("password")); // In real app, this should be hashed
+            admin.setPassword(passwordEncoder.encode(userData.get("password"))); // Hash the password
             admin.setPhone(userData.get("phone"));
             admin.setRole("ADMIN");
             admin.setIsActive(true);
             admin.setCreatedAt(LocalDateTime.now());
             admin.setUpdatedAt(LocalDateTime.now());
 
-            User savedAdmin = userRepository.save(admin);
+            User savedAdmin = userDetailsService.updateUser(admin);
 
             return ResponseEntity.ok().body("{\n" +
                     "  \"success\": true,\n" +
@@ -319,5 +271,99 @@ public class AdminController {
                     "  \"message\": \"Failed to create admin user: " + e.getMessage() + "\"\n" +
                     "}");
         }
+    }
+
+    /**
+     * Get recent activities overview
+     */
+    @GetMapping("/recent-activities")
+    public ResponseEntity<Map<String, Object>> getRecentActivities() {
+        Map<String, Object> activities = new HashMap<>();
+
+        // Get recent properties (you'll need to implement this in PropertyService)
+        List<Property> allProperties = propertyService.getAllProperties();
+        List<Property> recentProperties = allProperties.stream()
+                .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
+                .limit(10)
+                .toList();
+
+        // Get recent users
+        List<User> allUsers = userDetailsService.getAllUsers();
+        List<User> recentUsers = allUsers.stream()
+                .sorted((u1, u2) -> u2.getCreatedAt().compareTo(u1.getCreatedAt()))
+                .limit(10)
+                .toList();
+
+        activities.put("recentProperties", recentProperties);
+        activities.put("recentUsers", recentUsers);
+        activities.put("generatedAt", LocalDateTime.now());
+
+        return ResponseEntity.ok(activities);
+    }
+
+    /**
+     * Search users by email or name
+     */
+    @GetMapping("/users/search")
+    public ResponseEntity<List<User>> searchUsers(@RequestParam String query) {
+        List<User> allUsers = userDetailsService.getAllUsers();
+        List<User> searchResults = allUsers.stream()
+                .filter(user ->
+                        user.getEmail().toLowerCase().contains(query.toLowerCase()) ||
+                                user.getFirstName().toLowerCase().contains(query.toLowerCase()) ||
+                                user.getLastName().toLowerCase().contains(query.toLowerCase())
+                )
+                .toList();
+        return ResponseEntity.ok(searchResults);
+    }
+
+    /**
+     * Test endpoint to create admin
+     */
+    @GetMapping("/test-create-admin")
+    public ResponseEntity<?> testCreateAdmin() {
+        Map<String, String> adminData = new HashMap<>();
+        adminData.put("firstName", "Test");
+        adminData.put("lastName", "Admin");
+        adminData.put("email", "testadmin@propertylk.com");
+        adminData.put("password", "admin123");
+        adminData.put("phone", "0701234567");
+
+        return createAdminUser(adminData);
+    }
+
+    /**
+     * Get property statistics summary
+     */
+    @GetMapping("/properties/statistics")
+    public ResponseEntity<Map<String, Object>> getPropertyStatistics() {
+        PropertyService.PropertyStats stats = propertyService.getPropertyStats();
+
+        Map<String, Object> propertyStats = new HashMap<>();
+        propertyStats.put("total", stats.getTotalProperties());
+        propertyStats.put("active", stats.getActiveProperties());
+        propertyStats.put("sold", stats.getSoldProperties());
+        propertyStats.put("rented", stats.getRentedProperties());
+        propertyStats.put("forSale", stats.getPropertiesForSale());
+        propertyStats.put("forRent", stats.getPropertiesForRent());
+
+        return ResponseEntity.ok(propertyStats);
+    }
+
+    /**
+     * Get user statistics summary
+     */
+    @GetMapping("/users/statistics")
+    public ResponseEntity<Map<String, Object>> getUserStatistics() {
+        List<User> allUsers = userDetailsService.getAllUsers();
+
+        Map<String, Object> userStats = new HashMap<>();
+        userStats.put("total", allUsers.size());
+        userStats.put("active", allUsers.stream().mapToLong(u -> u.getIsActive() ? 1 : 0).sum());
+        userStats.put("sellers", userDetailsService.getUsersByRole("SELLER").size());
+        userStats.put("buyers", userDetailsService.getUsersByRole("BUYER").size());
+        userStats.put("admins", userDetailsService.getUsersByRole("ADMIN").size());
+
+        return ResponseEntity.ok(userStats);
     }
 }

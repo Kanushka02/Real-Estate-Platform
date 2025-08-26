@@ -108,11 +108,18 @@ public class PropertyService {
         return propertyRepository.findBySeller(user);
     }
 
+   /*
+           * Get all active properties (public access)
+     */
+    public List<Property> getAllActiveProperties() {
+        return propertyRepository.findByStatus("ACTIVE");
+    }
+
     /**
-     * Get all properties (public access)
+     * Get all properties including inactive (admin only)
      */
     public List<Property> getAllProperties() {
-        return propertyRepository.findByStatus("ACTIVE");
+        return propertyRepository.findAll();
     }
 
     /**
@@ -123,13 +130,55 @@ public class PropertyService {
     }
 
     /**
-     * Search properties with filters (by location, type, bedrooms)
+     * Search properties with filters
      */
     public List<Property> searchProperties(String district, String city, String propertyType,
                                            Integer minBedrooms, Integer maxBedrooms) {
         return propertyRepository.findPropertiesWithFilters(
                 district, city, propertyType, minBedrooms, maxBedrooms
         );
+    }
+
+    /**
+     * Search properties by keyword
+     */
+    public List<Property> searchPropertiesByKeyword(String keyword) {
+        return propertyRepository.findByTitleOrDescriptionContaining(keyword);
+    }
+
+    /**
+     * Get properties by district
+     */
+    public List<Property> getPropertiesByDistrict(String district) {
+        return propertyRepository.findByLocationDistrict(district);
+    }
+
+    /**
+     * Get properties by city
+     */
+    public List<Property> getPropertiesByCity(String city) {
+        return propertyRepository.findByLocationCity(city);
+    }
+
+    /**
+     * Get properties by bedrooms
+     */
+    public List<Property> getPropertiesByBedrooms(Integer bedrooms) {
+        return propertyRepository.findByBedroomsAndStatus(bedrooms, "ACTIVE");
+    }
+
+    /**
+     * Get properties for sale
+     */
+    public List<Property> getPropertiesForSale() {
+        return propertyRepository.findActivePropertiesForSale();
+    }
+
+    /**
+     * Get properties for rent
+     */
+    public List<Property> getPropertiesForRent() {
+        return propertyRepository.findActivePropertiesForRent();
     }
 
     /**
@@ -155,8 +204,8 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("Property not found"));
 
         // Check ownership or admin rights
-        if (!property.getSeller().getUserId().equals(user.getUserId()) && 
-            !user.getRole().equals("ADMIN")) {
+        if (!property.getSeller().getUserId().equals(user.getUserId()) &&
+                !user.getRole().equals("ADMIN")) {
             throw new AccessDeniedException("You can only modify your own properties");
         }
 
@@ -166,5 +215,117 @@ public class PropertyService {
         property.setUpdatedAt(LocalDateTime.now());
 
         return propertyRepository.save(property);
+    }
+
+    /**
+     * Mark property as sold (seller or admin only)
+     */
+    public Property markPropertyAsSold(Long propertyId, String userEmail) {
+        User user = userDetailsService.getUserByEmail(userEmail);
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        // Check ownership or admin rights
+        if (!property.getSeller().getUserId().equals(user.getUserId()) &&
+                !user.getRole().equals("ADMIN")) {
+            throw new AccessDeniedException("You can only modify your own properties");
+        }
+
+        property.setStatus("SOLD");
+        property.setUpdatedAt(LocalDateTime.now());
+
+        return propertyRepository.save(property);
+    }
+
+    /**
+     * Mark property as rented (seller or admin only)
+     */
+    public Property markPropertyAsRented(Long propertyId, String userEmail) {
+        User user = userDetailsService.getUserByEmail(userEmail);
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        // Check ownership or admin rights
+        if (!property.getSeller().getUserId().equals(user.getUserId()) &&
+                !user.getRole().equals("ADMIN")) {
+            throw new AccessDeniedException("You can only modify your own properties");
+        }
+
+        property.setStatus("RENTED");
+        property.setUpdatedAt(LocalDateTime.now());
+
+        return propertyRepository.save(property);
+    }
+
+    /**
+     * Get featured properties
+     */
+    public List<Property> getFeaturedProperties() {
+        return propertyRepository.findByFeaturedTrueAndStatus("ACTIVE");
+    }
+
+    /**
+     * Set property as featured (admin only)
+     */
+    public Property setPropertyFeatured(Long propertyId, boolean featured, String userEmail) {
+        User user = userDetailsService.getUserByEmail(userEmail);
+
+        // Only admin can set featured properties
+        if (!user.getRole().equals("ADMIN")) {
+            throw new AccessDeniedException("Only admins can set featured properties");
+        }
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        property.setFeatured(featured);
+        property.setUpdatedAt(LocalDateTime.now());
+
+        return propertyRepository.save(property);
+    }
+
+    /**
+     * Get statistics for dashboard
+     */
+    public PropertyStats getPropertyStats() {
+        long totalProperties = propertyRepository.count();
+        long activeProperties = propertyRepository.countByStatus("ACTIVE");
+        long soldProperties = propertyRepository.countByStatus("SOLD");
+        long rentedProperties = propertyRepository.countByStatus("RENTED");
+        long propertiesForSale = propertyRepository.countByPropertyType("SALE");
+        long propertiesForRent = propertyRepository.countByPropertyType("RENT");
+
+        return new PropertyStats(totalProperties, activeProperties, soldProperties,
+                rentedProperties, propertiesForSale, propertiesForRent);
+    }
+
+    /**
+     * Inner class for property statistics
+     */
+    public static class PropertyStats {
+        private final long totalProperties;
+        private final long activeProperties;
+        private final long soldProperties;
+        private final long rentedProperties;
+        private final long propertiesForSale;
+        private final long propertiesForRent;
+
+        public PropertyStats(long totalProperties, long activeProperties, long soldProperties,
+                             long rentedProperties, long propertiesForSale, long propertiesForRent) {
+            this.totalProperties = totalProperties;
+            this.activeProperties = activeProperties;
+            this.soldProperties = soldProperties;
+            this.rentedProperties = rentedProperties;
+            this.propertiesForSale = propertiesForSale;
+            this.propertiesForRent = propertiesForRent;
+        }
+
+        // Getters
+        public long getTotalProperties() { return totalProperties; }
+        public long getActiveProperties() { return activeProperties; }
+        public long getSoldProperties() { return soldProperties; }
+        public long getRentedProperties() { return rentedProperties; }
+        public long getPropertiesForSale() { return propertiesForSale; }
+        public long getPropertiesForRent() { return propertiesForRent; }
     }
 }

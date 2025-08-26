@@ -1,45 +1,64 @@
 package com.srilanka.realestate.service;
 
-import com.srilanka.realestate.entity.User;
-import com.srilanka.realestate.repository.UserRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.srilanka.realestate.entity.User;
+import com.srilanka.realestate.repository.UserRepository;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepository userRepository;
+	private UserRepository userRepository;
 
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+	@Override
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        // Convert role to Spring Security authority format
-        List<SimpleGrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority("ROLE_" + user.getRole())
-        );
+		GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole());
+		return new org.springframework.security.core.userdetails.User(
+				user.getEmail(),
+				user.getPassword(),
+				user.getIsActive(),
+				true, // accountNonExpired
+				true, // credentialsNonExpired
+				true, // accountNonLocked
+				List.of(authority)
+		);
+	}
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(authorities)
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(!user.getIsActive())
-                .build();
-    }
+	public List<User> getAllUsers() {
+		return userRepository.findAll();
+	}
 
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+	public List<User> getUsersByRole(String role) {
+		return userRepository.findByRole(role);
+	}
+
+	public User getUserById(Long userId) {
+		return userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("User not found"));
+	}
+
+	public User getUserByEmail(String email) {
+		return userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found"));
+	}
+
+	public boolean existsByEmail(String email) {
+		return userRepository.findByEmail(email).isPresent();
+	}
+
+	public User updateUser(User user) {
+		return userRepository.save(user);
     }
 }
