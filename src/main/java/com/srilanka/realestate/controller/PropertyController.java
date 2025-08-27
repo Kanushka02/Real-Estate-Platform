@@ -30,7 +30,7 @@ import com.srilanka.realestate.service.PropertyService;
 public class PropertyController {
 
 	@Autowired
-	private PropertyRepository propertyRepository;
+	private PropertyRepository ropertyRepository;
 
 	@Autowired
 	private JwtUtil jwtUtil;
