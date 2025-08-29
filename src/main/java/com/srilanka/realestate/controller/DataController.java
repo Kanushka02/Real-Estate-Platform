@@ -1,5 +1,14 @@
 package com.srilanka.realestate.controller;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.srilanka.realestate.entity.Location;
 import com.srilanka.realestate.entity.Property;
 import com.srilanka.realestate.entity.PropertyCategory;
@@ -8,16 +17,10 @@ import com.srilanka.realestate.repository.LocationRepository;
 import com.srilanka.realestate.repository.PropertyCategoryRepository;
 import com.srilanka.realestate.repository.PropertyRepository;
 import com.srilanka.realestate.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/data")
+@CrossOrigin(origins = "http://localhost:3000")
 public class DataController {
 
     @Autowired
