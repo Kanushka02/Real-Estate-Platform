@@ -25,6 +25,17 @@ export const tokenService = {
   getToken: () => {
     return Cookies.get(TOKEN_KEY);
   },
+  setToken: (token) => {
+    try {
+      console.log('Attempting to store token:', token.substring(0, 20) + '...');
+      Cookies.set(TOKEN_KEY, token, { expires: 1, secure: true, sameSite: 'strict' });
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('Token stored successfully');
+    } catch (error) {
+      console.error('Error storing token:', error);
+      throw error; // Propagate error to catch in register
+    }
+  },
   
   removeToken: () => {
     Cookies.remove(TOKEN_KEY);
@@ -83,8 +94,15 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
+    try {
+      const response = await api.post('/auth/register', userData);
+      console.log('authAPI.register raw response:', response);
+      console.log('authAPI.register response.data:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('authAPI.register error:', error, 'Response:', error.response);
+      throw error;
+    }
   },
   
   login: async (credentials) => {
@@ -96,10 +114,20 @@ export const authAPI = {
     const response = await api.get('/auth/validate');
     return response.data;
   },
-  
+
   logout: () => {
     tokenService.removeToken();
     tokenService.removeUser();
+  },
+  isValidToken: (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiry = payload.exp * 1000; // Convert to milliseconds
+      return Date.now() < expiry;
+    } catch (error) {
+      console.error('Invalid token:', error);
+      return false;
+    }
   }
 };
 

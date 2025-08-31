@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { authAPI, tokenService } from '../services/api';
 
 // Auth Context
@@ -87,15 +87,24 @@ const authReducer = (state, action) => {
 };
 
 // Helper function to decode JWT and extract user info
-const getUserFromToken = (token) => {
+const getUserFromToken = (token, userData) => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+    console.log('JWT payload:', payload);
     return {
-      email: payload.sub,
-      // Add more fields as needed when you have them in your JWT
+      email: payload.sub || userData.email,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      role: userData.role || null
     };
   } catch (error) {
-    return null;
+    console.error('Error decoding token:', error);
+    return {
+      email: userData.email,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      role: userData.role || null
+    };
   }
 };
 
@@ -105,17 +114,29 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing token on app load
   useEffect(() => {
-    const checkAuthStatus = () => {
+    const checkAuthStatus = async () => {
       const token = tokenService.getToken();
       
-      if (token && tokenService.isValidToken(token)) {
-        const user = getUserFromToken(token);
-        dispatch({
-          type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: { user, token }
-        });
+      if (token) {
+        try {
+          const response = await authAPI.validateToken();
+          console.log('validateToken response:', response);
+          if (response.success) {
+            const user = getUserFromToken(token, {});
+            dispatch({
+              type: AUTH_ACTIONS.LOGIN_SUCCESS,
+              payload: { user, token }
+            });
+          } else {
+            tokenService.removeToken();
+            dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+          }
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          tokenService.removeToken();
+          dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+        }
       } else {
-        tokenService.removeToken();
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
       }
     };
@@ -124,23 +145,25 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login function
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
     
     try {
       const response = await authAPI.login(credentials);
-      const { token, message, success } = response.data;
+      console.log('Login response:', response);
+      const data = response.data || {};
+      const { token, message, success } = data;
       
       if (success && token) {
         tokenService.setToken(token);
-        const user = getUserFromToken(token);
+        const user = getUserFromToken(token, credentials);
         
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
           payload: { user, token }
         });
         
-        return { success: true, message };
+        return { success: true, message: message || 'Login successful' };
       } else {
         throw new Error(message || 'Login failed');
       }
@@ -152,50 +175,54 @@ export const AuthProvider = ({ children }) => {
       });
       return { success: false, message: errorMessage };
     }
-  };
+  }, []);
 
   // Register function
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     dispatch({ type: AUTH_ACTIONS.REGISTER_START });
     
     try {
       const response = await authAPI.register(userData);
-      const { token, message, success } = response.data;
+      console.log('Register API response:', response);
+      const data = response.data || {};
+      const { token, message, success } = data;
       
       if (success && token) {
+        console.log('Storing token and creating user object');
         tokenService.setToken(token);
-        const user = getUserFromToken(token);
+        const user = getUserFromToken(token, userData);
         
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
           payload: { user, token }
         });
         
-        return { success: true, message };
+        return { success: true, message: message || 'Registration successful' };
       } else {
         throw new Error(message || 'Registration failed');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      console.error('Register error:', errorMessage, error);
       dispatch({
         type: AUTH_ACTIONS.REGISTER_ERROR,
         payload: errorMessage
       });
       return { success: false, message: errorMessage };
     }
-  };
+  }, []);
 
   // Logout function
-  const logout = () => {
+  const logout = useCallback(() => {
     tokenService.removeToken();
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
-  };
+  }, []);
 
   // Clear error function
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
-
+  }, []);
+  
   const contextValue = {
     ...state,
     login,

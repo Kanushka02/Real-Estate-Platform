@@ -93,17 +93,29 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default form submission
+    console.log('Form submitted, preventing default');
     
     if (!validateForm()) {
+      console.log('Form validation failed:', formErrors);
       return;
     }
-
     const { confirmPassword, ...registerData } = formData;
-    const result = await register(registerData);
-    
-    if (result.success) {
-      navigate('/dashboard');
+    try {
+      console.log('Calling register with data:', registerData);
+      const result = await register(registerData);
+      console.log('Registration result:', result);
+      
+      if (result.success) {
+        console.log('Navigating to /dashboard');
+        navigate('/dashboard', { replace: true });
+      } else {
+        console.error('Registration failed:', result.message);
+        setFormErrors({ general: result.message || 'Registration failed' });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setFormErrors({ general: 'An unexpected error occurred. Please try again.' });
     }
   };
 
