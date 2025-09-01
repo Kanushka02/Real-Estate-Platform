@@ -17,11 +17,6 @@ const TOKEN_KEY = 'propertylk_token';
 const USER_KEY = 'propertylk_user';
 
 export const tokenService = {
-  setToken: (token) => {
-    Cookies.set(TOKEN_KEY, token, { expires: 1, secure: true, sameSite: 'strict' });
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  },
-  
   getToken: () => {
     return Cookies.get(TOKEN_KEY);
   },

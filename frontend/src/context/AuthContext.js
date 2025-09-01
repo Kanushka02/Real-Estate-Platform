@@ -184,8 +184,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(userData);
       console.log('Register API response:', response);
-      const data = response.data || {};
-      const { token, message, success } = data;
+      const { token, message, success } = response;
       
       if (success && token) {
         console.log('Storing token and creating user object');
