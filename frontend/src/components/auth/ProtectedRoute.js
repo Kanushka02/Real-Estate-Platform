@@ -4,11 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from '../common';
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
-  const { isAuthenticated, user, loading, isInitialized } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
   // Show loading while auth is being initialized
-  if (!isInitialized || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />

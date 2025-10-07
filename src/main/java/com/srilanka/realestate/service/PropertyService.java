@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -113,6 +115,10 @@ public class PropertyService {
      */
     public List<Property> getAllActiveProperties() {
         return propertyRepository.findByStatus("ACTIVE");
+    }
+
+    public Page<Property> getAllActiveProperties(Pageable pageable) {
+        return propertyRepository.findByStatus("ACTIVE", pageable);
     }
 
     /**
@@ -281,6 +287,17 @@ public class PropertyService {
         property.setFeatured(featured);
         property.setUpdatedAt(LocalDateTime.now());
 
+        return propertyRepository.save(property);
+    }
+
+    /**
+     * Admin: change property status to any allowed value without ownership checks
+     */
+    public Property adminChangePropertyStatus(Long propertyId, String newStatus) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+        property.setStatus(newStatus.toUpperCase());
+        property.setUpdatedAt(LocalDateTime.now());
         return propertyRepository.save(property);
     }
 

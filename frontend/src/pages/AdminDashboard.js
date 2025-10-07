@@ -11,6 +11,7 @@ const AdminDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [properties, setProperties] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -28,7 +29,7 @@ const AdminDashboard = () => {
       setError('');
       
       if (activeTab === 'overview') {
-        const statsResponse = await adminAPI.getDashboardStats();
+        const statsResponse = await adminAPI.getEnhancedStats();
         setDashboardStats(statsResponse.data);
       } else if (activeTab === 'users') {
         const usersResponse = await adminAPI.getAllUsers();
@@ -36,6 +37,9 @@ const AdminDashboard = () => {
       } else if (activeTab === 'properties') {
         const propertiesResponse = await adminAPI.getAllProperties();
         setProperties(propertiesResponse.data);
+      } else if (activeTab === 'reviews') {
+        const reviewsResponse = await adminAPI.getAllReviews();
+        setReviews(reviewsResponse.data);
       }
       
     } catch (error) {
@@ -88,6 +92,20 @@ const AdminDashboard = () => {
       alert('Property deleted successfully');
     } catch (error) {
       alert('Failed to delete property: ' + handleAPIError(error));
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await adminAPI.deleteReview(reviewId);
+      setReviews(prev => prev.filter(r => r.reviewId !== reviewId));
+      alert('Review deleted successfully');
+    } catch (error) {
+      alert('Failed to delete review: ' + handleAPIError(error));
     }
   };
 
@@ -150,6 +168,21 @@ const AdminDashboard = () => {
                   }`}
                 >
                   Property Management
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('reviews');
+                    setLoading(true);
+                    loadDashboardData();
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === 'reviews'
+                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Reviews Management
                 </button>
 
                 <button
@@ -221,6 +254,17 @@ const AdminDashboard = () => {
                           {dashboardStats.users.buyers}
                         </p>
                         <p className="text-gray-600">Buyers</p>
+                      </Card>
+
+                      <Card className="p-6 text-center">
+                        <div className="text-3xl text-yellow-600 mb-2">⭐</div>
+                        <p className="text-3xl font-bold text-gray-900">
+                          {dashboardStats.reviews.total}
+                        </p>
+                        <p className="text-gray-600">Reviews</p>
+                        <p className="text-sm text-yellow-600 mt-1">
+                          Avg: {dashboardStats.reviews.averageRating.toFixed(1)} ⭐
+                        </p>
                       </Card>
                     </div>
 
@@ -371,7 +415,7 @@ const AdminDashboard = () => {
                     <div className="flex justify-between items-center">
                       <h2 className="text-2xl font-semibold">Property Management</h2>
                       <div className="flex gap-2">
-                        <select 
+                        <select
                           className="input-field w-40"
                           onChange={(e) => {
                             if (e.target.value === 'all') {
@@ -403,6 +447,125 @@ const AdminDashboard = () => {
                         <h3 className="text-xl font-medium text-gray-600">
                           No Properties Found
                         </h3>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                {/* Reviews Management Tab */}
+                {activeTab === 'reviews' && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-2xl font-semibold">Reviews Management</h2>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Search reviews..."
+                          className="w-64"
+                        />
+                        <Button variant="outline">Search</Button>
+                      </div>
+                    </div>
+
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Review
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Property
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                User
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Rating
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {reviews.map(review => (
+                              <tr key={review.reviewId} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                  <div className="max-w-xs truncate">
+                                    {review.comment || 'No comment'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {review.property.title}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    ID: {review.property.propertyId}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {review.user.firstName} {review.user.lastName}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {review.user.email}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <span
+                                        key={star}
+                                        className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                      >
+                                        ★
+                                      </span>
+                                    ))}
+                                    <span className="ml-2 text-sm text-gray-600">({review.rating})</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {new Date(review.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(`/properties/${review.property.propertyId}`, '_blank')}
+                                    className="mr-2"
+                                  >
+                                    View Property
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteReview(review.reviewId)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    Delete
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+
+                    {reviews.length === 0 && (
+                      <Card className="p-12 text-center">
+                        <div className="text-gray-400 text-6xl mb-4">⭐</div>
+                        <h3 className="text-xl font-medium text-gray-600">
+                          No Reviews Found
+                        </h3>
+                        <p className="text-gray-500 mt-2">
+                          There are no reviews in the system yet.
+                        </p>
                       </Card>
                     )}
                   </div>

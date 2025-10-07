@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { propertiesAPI, userAPI, handleAPIError } from '../services/api';
+import { propertiesAPI, bookingsAPI, userAPI, reviewsAPI, handleAPIError } from '../services/api';
 import { Card, Button, Badge, LoadingSpinner, Alert } from '../components/common';
 
 const UserDashboard = () => {
@@ -10,8 +10,15 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [myProperties, setMyProperties] = useState([]);
   const [savedProperties, setSavedProperties] = useState([]);
+  const [myBookings, setMyBookings] = useState([]);
+  const [listingBookings, setListingBookings] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '' });
+  const [profileMsg, setProfileMsg] = useState('');
+  const [pwdMsg, setPwdMsg] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -35,6 +42,33 @@ const UserDashboard = () => {
       // Load saved properties (favorites) - TODO: implement when backend ready
       // const savedResponse = await propertiesAPI.getSavedProperties();
       // setSavedProperties(savedResponse.data);
+
+      // Load bookings
+      if (user?.role === 'BUYER' || user?.role === 'ADMIN') {
+        try {
+          const b = await bookingsAPI.myBookings();
+          setMyBookings(b);
+        } catch (e) { /* ignore partial failure */ }
+      }
+      if (user?.role === 'SELLER' || user?.role === 'ADMIN') {
+        try {
+          const s = await bookingsAPI.bookingsForMyListings();
+          setListingBookings(s);
+        } catch (e) { /* ignore partial failure */ }
+      }
+
+      // Load user's reviews
+      try {
+        const reviewsResponse = await reviewsAPI.getMyReviews();
+        setMyReviews(reviewsResponse.data || []);
+      } catch (e) { /* ignore partial failure */ }
+
+      // Seed profile form
+      setProfileForm({
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        phone: user?.phone || ''
+      });
       
     } catch (error) {
       setError(handleAPIError(error));
@@ -169,6 +203,17 @@ const UserDashboard = () => {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('my-reviews')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeTab === 'my-reviews'
+                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  My Reviews ({myReviews.length})
+                </button>
+
+                <button
                   onClick={() => setActiveTab('profile')}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                     activeTab === 'profile'
@@ -178,6 +223,32 @@ const UserDashboard = () => {
                 >
                   Profile Settings
                 </button>
+
+                {(user?.role === 'BUYER' || user?.role === 'ADMIN') && (
+                  <button
+                    onClick={() => setActiveTab('my-bookings')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeTab === 'my-bookings'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    My Bookings ({myBookings.length})
+                  </button>
+                )}
+
+                {(user?.role === 'SELLER' || user?.role === 'ADMIN') && (
+                  <button
+                    onClick={() => setActiveTab('listing-bookings')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeTab === 'listing-bookings'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    Bookings for My Listings ({listingBookings.length})
+                  </button>
+                )}
               </nav>
             </Card>
           </div>
@@ -291,7 +362,7 @@ const UserDashboard = () => {
             {activeTab === 'saved-properties' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold">Saved Properties</h2>
-                
+
                 <Card className="p-12 text-center">
                   <div className="text-gray-400 text-6xl mb-4">❤️</div>
                   <h3 className="text-xl font-medium text-gray-600 mb-2">
@@ -307,6 +378,84 @@ const UserDashboard = () => {
               </div>
             )}
 
+            {/* My Reviews Tab */}
+            {activeTab === 'my-reviews' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold">My Reviews</h2>
+
+                {myReviews.length === 0 ? (
+                  <Card className="p-12 text-center">
+                    <div className="text-gray-400 text-6xl mb-4">⭐</div>
+                    <h3 className="text-xl font-medium text-gray-600 mb-2">
+                      No Reviews Yet
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      You haven't reviewed any properties yet. Visit properties you've viewed to leave reviews.
+                    </p>
+                    <Link to="/properties">
+                      <Button>Browse Properties</Button>
+                    </Link>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {myReviews.map(review => (
+                      <Card key={review.reviewId} className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                              {review.property.title}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Reviewed on {new Date(review.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={`text-lg ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                            <span className="ml-2 text-sm text-gray-600">({review.rating}/5)</span>
+                          </div>
+                        </div>
+                        {review.comment && (
+                          <p className="text-gray-700 mb-4">{review.comment}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Link to={`/properties/${review.property.propertyId}`}>
+                            <Button variant="outline" size="sm">
+                              View Property
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to delete this review?')) {
+                                try {
+                                  await reviewsAPI.delete(review.reviewId);
+                                  setMyReviews(prev => prev.filter(r => r.reviewId !== review.reviewId));
+                                  alert('Review deleted successfully');
+                                } catch (error) {
+                                  alert('Failed to delete review: ' + handleAPIError(error));
+                                }
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <div className="space-y-6">
@@ -316,67 +465,130 @@ const UserDashboard = () => {
                   <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={user?.firstName || ''}
-                        readOnly
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                      <input type="text" className="input-field" value={profileForm.firstName} onChange={(e)=>setProfileForm(p=>({...p, firstName: e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={user?.lastName || ''}
-                        readOnly
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                      <input type="text" className="input-field" value={profileForm.lastName} onChange={(e)=>setProfileForm(p=>({...p, lastName: e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        className="input-field"
-                        value={user?.email || ''}
-                        readOnly
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                      <input type="email" className="input-field" value={user?.email || ''} readOnly />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone
-                      </label>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={user?.phone || 'Not provided'}
-                        readOnly
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                      <input type="text" className="input-field" value={profileForm.phone} onChange={(e)=>setProfileForm(p=>({...p, phone: e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Role
-                      </label>
-                      <input
-                        type="text"
-                        className="input-field capitalize"
-                        value={user?.role || ''}
-                        readOnly
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                      <input type="text" className="input-field capitalize" value={user?.role || ''} readOnly />
                     </div>
                   </div>
+                  {profileMsg && <div className="text-green-600 text-sm mt-3">{profileMsg}</div>}
                   <div className="mt-6">
-                    <Button variant="outline">
-                      Edit Profile (Coming Soon)
+                    <Button variant="outline" onClick={async()=>{
+                      try {
+                        setProfileMsg('');
+                        await userAPI.updateProfile(profileForm);
+                        setProfileMsg('Profile updated');
+                      } catch (e) {
+                        alert(handleAPIError(e));
+                      }
+                    }}>
+                      Save Changes
                     </Button>
                   </div>
                 </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Change Password</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                      <input type="password" className="input-field" value={pwdForm.currentPassword} onChange={(e)=>setPwdForm(p=>({...p, currentPassword: e.target.value}))} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <input type="password" className="input-field" value={pwdForm.newPassword} onChange={(e)=>setPwdForm(p=>({...p, newPassword: e.target.value}))} />
+                    </div>
+                  </div>
+                  {pwdMsg && <div className="text-green-600 text-sm mt-3">{pwdMsg}</div>}
+                  <div className="mt-6">
+                    <Button variant="outline" onClick={async()=>{
+                      try {
+                        setPwdMsg('');
+                        await userAPI.changePassword(pwdForm);
+                        setPwdMsg('Password updated');
+                        setPwdForm({ currentPassword: '', newPassword: '' });
+                      } catch (e) {
+                        alert(handleAPIError(e));
+                      }
+                    }}>
+                      Update Password
+                    </Button>
+                  </div>
+                </Card>
+
+              </div>
+            )}
+
+            {/* My Bookings (Buyer) */}
+            {activeTab === 'my-bookings' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold">My Bookings</h2>
+                {myBookings.length === 0 ? (
+                  <Card className="p-12 text-center">
+                    <div className="text-gray-400 text-6xl mb-4">📅</div>
+                    <p className="text-gray-600">No bookings yet.</p>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {myBookings.map(b => (
+                      <Card key={b.bookingId} className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{b.property?.title || 'Property'}</p>
+                            <p className="text-sm text-gray-600">Scheduled: {new Date(b.scheduledAt).toLocaleString()}</p>
+                          </div>
+                          <Badge variant={b.status === 'CONFIRMED' ? 'success' : b.status === 'CANCELLED' ? 'secondary' : 'warning'}>
+                            {b.status}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bookings for My Listings (Seller) */}
+            {activeTab === 'listing-bookings' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold">Bookings for My Listings</h2>
+                {listingBookings.length === 0 ? (
+                  <Card className="p-12 text-center">
+                    <div className="text-gray-400 text-6xl mb-4">📅</div>
+                    <p className="text-gray-600">No bookings yet.</p>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {listingBookings.map(b => (
+                      <Card key={b.bookingId} className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{b.property?.title || 'Property'}</p>
+                            <p className="text-sm text-gray-600">Buyer: {b.buyer?.email}</p>
+                            <p className="text-sm text-gray-600">Scheduled: {new Date(b.scheduledAt).toLocaleString()}</p>
+                          </div>
+                          <Badge variant={b.status === 'CONFIRMED' ? 'success' : b.status === 'CANCELLED' ? 'secondary' : 'warning'}>
+                            {b.status}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

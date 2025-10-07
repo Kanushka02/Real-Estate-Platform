@@ -6,11 +6,16 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.srilanka.realestate.dto.ChangePasswordRequest;
+import com.srilanka.realestate.dto.UpdateProfileRequest;
 import com.srilanka.realestate.entity.User;
 import com.srilanka.realestate.repository.UserRepository;
 
@@ -21,6 +26,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // Test endpoint - create a sample user
     @GetMapping("/create-test-user")
@@ -69,5 +77,37 @@ public class UserController {
         }
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @PatchMapping("/profile")
+    public User updateProfile(@AuthenticationPrincipal UserDetails userDetails,
+                              @RequestBody UpdateProfileRequest request) {
+        if (userDetails == null) {
+            throw new RuntimeException("No authenticated user");
+        }
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
+
+    @PatchMapping("/change-password")
+    public String changePassword(@AuthenticationPrincipal UserDetails userDetails,
+                                 @RequestBody ChangePasswordRequest request) {
+        if (userDetails == null) {
+            throw new RuntimeException("No authenticated user");
+        }
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        return "Password updated successfully";
     }
 }

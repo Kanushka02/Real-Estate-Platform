@@ -1,14 +1,17 @@
 package com.srilanka.realestate.repository;
 
-import com.srilanka.realestate.entity.Property;
-import com.srilanka.realestate.entity.User;
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.util.List;
+import com.srilanka.realestate.entity.Property;
+import com.srilanka.realestate.entity.User;
 
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {
@@ -18,6 +21,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     // Find properties by status
     List<Property> findByStatus(String status);
+    Page<Property> findByStatus(String status, Pageable pageable);
 
     // Find properties by property type (SALE or RENT)
     List<Property> findByPropertyType(String propertyType);

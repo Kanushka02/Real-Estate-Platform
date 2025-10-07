@@ -107,7 +107,8 @@ export const authAPI = {
   
   validateToken: async () => {
     const response = await api.get('/auth/validate');
-    return response.data;
+    // Backend returns a plain string on success; normalize to a common shape
+    return { success: true, message: response.data };
   },
 
   logout: () => {
@@ -132,8 +133,14 @@ export const propertiesAPI = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.keys(filters).forEach(key => {
-      if (filters[key]) params.append(key, filters[key]);
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') params.append(key, filters[key]);
     });
+    const response = await api.get(`/properties/all?${params}`);
+    return response.data;
+  },
+  getAllPaged: async ({ page = 0, size = 12, sort } = {}) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (sort) params.append('sort', sort);
     const response = await api.get(`/properties/all?${params}`);
     return response.data;
   },
@@ -176,44 +183,44 @@ export const propertiesAPI = {
         params.append(key, filters[key]);
       }
     });
-    const response = await api.get(`/properties/search/advanced?${params}`);
+    const response = await api.get(`/properties/advanced-search?${params}`);
     return response.data;
   },
   
   // Authenticated endpoints
   create: async (propertyData) => {
-    const response = await api.post('/properties/secure/create', propertyData);
+    const response = await api.post('/properties/create', propertyData);
     return response.data;
   },
-  
+
   update: async (id, propertyData) => {
-    const response = await api.put(`/properties/secure/update/${id}`, propertyData);
+    const response = await api.put(`/properties/update/${id}`, propertyData);
     return response.data;
   },
-  
+
   delete: async (id) => {
-    const response = await api.delete(`/properties/secure/delete/${id}`);
+    const response = await api.delete(`/properties/delete/${id}`);
     return response.data;
   },
-  
+
   getMyProperties: async () => {
-    const response = await api.get('/properties/secure/my-properties');
+    const response = await api.get('/properties/my-properties');
     return response.data;
   },
-  
+
   toggleStatus: async (id) => {
-    const response = await api.patch(`/properties/secure/toggle-status/${id}`);
+    const response = await api.patch(`/properties/toggle-status/${id}`);
     return response.data;
   },
-  
+
   // Helper endpoints for forms
   getLocations: async () => {
-    const response = await api.get('/properties/secure/locations');
+    const response = await api.get('/properties/locations');
     return response.data;
   },
-  
+
   getCategories: async () => {
-    const response = await api.get('/properties/secure/categories');
+    const response = await api.get('/properties/categories');
     return response.data;
   }
 };
@@ -269,6 +276,159 @@ export const adminAPI = {
   
   getUserDetails: async (userId) => {
     const response = await api.get(`/admin/users/${userId}/details`);
+    return response.data;
+  },
+
+  // Reviews management
+  getAllReviews: async () => {
+    const response = await api.get('/admin/reviews');
+    return response.data;
+  },
+
+  deleteReview: async (reviewId) => {
+    const response = await api.delete(`/admin/reviews/${reviewId}`);
+    return response.data;
+  },
+
+  // Enhanced stats
+  getEnhancedStats: async () => {
+    const response = await api.get('/admin/enhanced-stats');
+    return response.data;
+  }
+};
+
+// User API (profile)
+export const userAPI = {
+  getProfile: async () => {
+    const response = await api.get('/users/profile');
+    return response.data;
+  },
+  updateProfile: async (payload) => {
+    const response = await api.patch('/users/profile', payload);
+    return response.data;
+  },
+  changePassword: async (payload) => {
+    const response = await api.patch('/users/change-password', payload);
+    return response.data;
+  }
+};
+
+// Reviews API
+export const reviewsAPI = {
+  // Get all reviews for a property
+  getForProperty: async (propertyId) => {
+    const response = await api.get(`/reviews/property/${propertyId}`);
+    return response.data;
+  },
+
+  // Get average rating for a property
+  getAverageRating: async (propertyId) => {
+    const response = await api.get(`/reviews/property/${propertyId}/average-rating`);
+    return response.data;
+  },
+
+  // Get review count for a property
+  getReviewCount: async (propertyId) => {
+    const response = await api.get(`/reviews/property/${propertyId}/count`);
+    return response.data;
+  },
+
+  // Create a new review
+  create: async (propertyId, reviewData) => {
+    const response = await api.post(`/reviews/property/${propertyId}`, reviewData);
+    return response.data;
+  },
+
+  // Update a review
+  update: async (reviewId, reviewData) => {
+    const response = await api.put(`/reviews/${reviewId}`, reviewData);
+    return response.data;
+  },
+
+  // Delete a review
+  delete: async (reviewId) => {
+    const response = await api.delete(`/reviews/${reviewId}`);
+    return response.data;
+  },
+
+  // Get current user's reviews
+  getMyReviews: async () => {
+    const response = await api.get('/reviews/my-reviews');
+    return response.data;
+  },
+
+  // Check if user can review a property
+  canReview: async (propertyId) => {
+    const response = await api.get(`/reviews/property/${propertyId}/can-review`);
+    return response.data;
+  },
+
+  // Get user's review for a specific property
+  getMyReviewForProperty: async (propertyId) => {
+    const response = await api.get(`/reviews/property/${propertyId}/my-review`);
+    return response.data;
+  }
+};
+
+// Property Images API
+export const propertyImagesAPI = {
+  // Upload images for a property
+  upload: async (propertyId, images) => {
+    const formData = new FormData();
+    images.forEach(image => {
+      formData.append('images', image);
+    });
+    const response = await api.post(`/property-images/upload/${propertyId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Get images for a property
+  getForProperty: async (propertyId) => {
+    const response = await api.get(`/property-images/property/${propertyId}`);
+    return response.data;
+  },
+
+  // Delete an image
+  delete: async (imageId) => {
+    const response = await api.delete(`/property-images/${imageId}`);
+    return response.data;
+  },
+
+  // Set primary image
+  setPrimary: async (imageId) => {
+    const response = await api.put(`/property-images/${imageId}/set-primary`);
+    return response.data;
+  },
+
+  // Update image order
+  updateOrder: async (imageId, sortOrder) => {
+    const response = await api.put(`/property-images/${imageId}/order`, null, {
+      params: { sortOrder }
+    });
+    return response.data;
+  }
+};
+
+// Bookings API
+export const bookingsAPI = {
+  create: async (payload) => {
+    const response = await api.post('/bookings/create', payload);
+    return response.data;
+  },
+  myBookings: async () => {
+    const response = await api.get('/bookings/me');
+    return response.data;
+  },
+  bookingsForMyListings: async () => {
+    const response = await api.get('/bookings/my-listings');
+    return response.data;
+  },
+  updateStatus: async (bookingId, status) => {
+    const response = await api.patch(`/bookings/${bookingId}/status`, null, { params: { status } });
     return response.data;
   }
 };

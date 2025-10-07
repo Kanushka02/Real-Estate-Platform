@@ -22,7 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.srilanka.realestate.entity.Property;
+import com.srilanka.realestate.entity.Review;
 import com.srilanka.realestate.entity.User;
+import com.srilanka.realestate.repository.ReviewRepository;
 import com.srilanka.realestate.service.CustomUserDetailsService;
 import com.srilanka.realestate.service.PropertyService;
 
@@ -37,6 +39,9 @@ public class AdminController {
 
     @Autowired
     private PropertyService propertyService;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -154,23 +159,13 @@ public class AdminController {
     public ResponseEntity<?> changePropertyStatusAsAdmin(@PathVariable Long propertyId,
                                                          @RequestParam String status) {
         try {
-            Optional<Property> propertyOpt = propertyService.getPropertyById(propertyId);
-            if (propertyOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Property property = propertyOpt.get();
-            property.setStatus(status.toUpperCase());
-            property.setUpdatedAt(LocalDateTime.now());
-
-            // For admin, we need to directly save through service
-            // This would require additional method in PropertyService for admin operations
-
+            // Persist status change via service (admin override)
+            Property property = propertyService.adminChangePropertyStatus(propertyId, status);
             return ResponseEntity.ok().body("{\n" +
                     "  \"success\": true,\n" +
                     "  \"message\": \"Property status updated to " + status + "\",\n" +
                     "  \"propertyId\": " + propertyId + ",\n" +
-                    "  \"newStatus\": \"" + status.toUpperCase() + "\"\n" +
+                    "  \"newStatus\": \"" + property.getStatus() + "\"\n" +
                     "}");
 
         } catch (Exception e) {
@@ -367,5 +362,85 @@ public class AdminController {
         userStats.put("admins", userDetailsService.getUsersByRole("ADMIN").size());
 
         return ResponseEntity.ok(userStats);
+    }
+
+    /**
+     * Get all reviews for admin management
+     */
+    @GetMapping("/reviews")
+    public ResponseEntity<List<Review>> getAllReviews() {
+        List<Review> reviews = reviewRepository.findAll();
+        return ResponseEntity.ok(reviews);
+    }
+
+    /**
+     * Delete a review as admin
+     */
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<?> deleteReviewAsAdmin(@PathVariable Long reviewId) {
+        try {
+            if (!reviewRepository.existsById(reviewId)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            reviewRepository.deleteById(reviewId);
+
+            return ResponseEntity.ok().body("{\n" +
+                    "  \"success\": true,\n" +
+                    "  \"message\": \"Review deleted successfully by admin\",\n" +
+                    "  \"reviewId\": " + reviewId + "\n" +
+                    "}");
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("{\n" +
+                    "  \"success\": false,\n" +
+                    "  \"message\": \"Failed to delete review: " + e.getMessage() + "\"\n" +
+                    "}");
+        }
+    }
+
+    /**
+     * Get enhanced dashboard statistics including reviews and images
+     */
+    @GetMapping("/enhanced-stats")
+    public ResponseEntity<Map<String, Object>> getEnhancedStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Get basic stats
+        PropertyService.PropertyStats propertyStats = propertyService.getPropertyStats();
+        List<User> allUsers = userDetailsService.getAllUsers();
+
+        // Reviews stats
+        long totalReviews = reviewRepository.count();
+        Double averageRating = reviewRepository.findAverageRatingByPropertyId(1L); // Just get any average for now
+
+        // User stats
+        stats.put("users", Map.of(
+                "total", allUsers.size(),
+                "active", allUsers.stream().mapToLong(user -> user.getIsActive() ? 1 : 0).sum(),
+                "sellers", userDetailsService.getUsersByRole("SELLER").size(),
+                "buyers", userDetailsService.getUsersByRole("BUYER").size(),
+                "admins", userDetailsService.getUsersByRole("ADMIN").size()
+        ));
+
+        // Property stats
+        stats.put("properties", Map.of(
+                "total", propertyStats.getTotalProperties(),
+                "active", propertyStats.getActiveProperties(),
+                "sold", propertyStats.getSoldProperties(),
+                "rented", propertyStats.getRentedProperties(),
+                "forSale", propertyStats.getPropertiesForSale(),
+                "forRent", propertyStats.getPropertiesForRent()
+        ));
+
+        // Reviews stats
+        stats.put("reviews", Map.of(
+                "total", totalReviews,
+                "averageRating", averageRating != null ? averageRating : 0.0
+        ));
+
+        stats.put("generatedAt", LocalDateTime.now());
+
+        return ResponseEntity.ok(stats);
     }
 }

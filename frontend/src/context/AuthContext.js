@@ -151,8 +151,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(credentials);
       console.log('Login response:', response);
-      const data = response.data || {};
-      const { token, message, success } = data;
+      // authAPI.login returns the response body directly
+      const { token, message, success } = response || {};
       
       if (success && token) {
         tokenService.setToken(token);
