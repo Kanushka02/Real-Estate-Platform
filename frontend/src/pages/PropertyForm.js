@@ -1,410 +1,406 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { propertyAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { propertiesAPI, locationsAPI, categoriesAPI, handleAPIError } from '../services/api';
-import { Card, Button, Input, Select, Alert, LoadingSpinner } from '../components/common';
+import { DISTRICTS, PROPERTY_TYPES, LISTING_TYPES } from '../utils/constants';
 
 const PropertyForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const isEdit = !!id;
 
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    type: 'HOUSE',
+    listingType: 'SALE',
     price: '',
-    propertyType: 'SALE',
+    address: '',
+    city: '',
+    district: '',
+    postalCode: '',
     bedrooms: '',
     bathrooms: '',
-    areaSqft: '',
-    address: '',
-    locationId: '',
-    categoryId: ''
+    landSize: '',
+    floorSize: '',
+    parkingSpaces: '',
+    features: '',
+    images: '',
   });
 
-  // Form options
-  const [locations, setLocations] = useState([]);
-  const [categories, setCategories] = useState([]);
-  
-  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated()) {
       navigate('/login');
       return;
     }
 
-    if (user?.role !== 'SELLER' && user?.role !== 'ADMIN') {
-      navigate('/dashboard');
-      return;
+    if (isEdit) {
+      fetchProperty();
     }
+  }, [id]);
 
-    loadFormData();
-  }, [isAuthenticated, user, id, navigate]);
-
-  const loadFormData = async () => {
+  const fetchProperty = async () => {
     try {
-      setLoading(true);
-      
-      // Load locations and categories
-      const [locationsRes, categoriesRes] = await Promise.all([
-        propertiesAPI.getLocations(),
-        propertiesAPI.getCategories()
-      ]);
-      
-      setLocations(locationsRes.data);
-      setCategories(categoriesRes.data);
-
-      // If editing, load property data
-      if (isEdit) {
-        const propertyRes = await propertiesAPI.getById(id);
-        const property = propertyRes.data;
-        
-        setFormData({
-          title: property.title,
-          description: property.description,
-          price: property.price.toString(),
-          propertyType: property.propertyType,
-          bedrooms: property.bedrooms?.toString() || '',
-          bathrooms: property.bathrooms?.toString() || '',
-          areaSqft: property.areaSqft?.toString() || '',
-          address: property.address,
-          locationId: property.location.locationId.toString(),
-          categoryId: property.category.categoryId.toString()
-        });
-      }
+      const response = await propertyAPI.getById(id);
+      const property = response.data;
+      setFormData({
+        title: property.title,
+        description: property.description,
+        type: property.type,
+        listingType: property.listingType,
+        price: property.price,
+        address: property.address,
+        city: property.city,
+        district: property.district,
+        postalCode: property.postalCode || '',
+        bedrooms: property.bedrooms || '',
+        bathrooms: property.bathrooms || '',
+        landSize: property.landSize || '',
+        floorSize: property.floorSize || '',
+        parkingSpaces: property.parkingSpaces || '',
+        features: property.features || '',
+        images: property.images || '',
+      });
     } catch (error) {
-      setError(handleAPIError(error));
-    } finally {
-      setLoading(false);
+      console.error('Error fetching property:', error);
+      setError('Failed to load property');
     }
   };
 
-  const handleInputChange = (name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear errors when user starts typing
-    if (error) setError('');
-  };
-
-  const validateForm = () => {
-    if (!formData.title.trim()) {
-      setError('Property title is required');
-      return false;
-    }
-    if (!formData.description.trim()) {
-      setError('Property description is required');
-      return false;
-    }
-    if (!formData.price || formData.price <= 0) {
-      setError('Valid price is required');
-      return false;
-    }
-    if (!formData.address.trim()) {
-      setError('Property address is required');
-      return false;
-    }
-    if (!formData.locationId) {
-      setError('Location is required');
-      return false;
-    }
-    if (!formData.categoryId) {
-      setError('Property category is required');
-      return false;
-    }
-    return true;
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    setError('');
+    setLoading(true);
 
     try {
-      setLoading(true);
-      setError('');
-      
-      const propertyData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
-        bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
-        areaSqft: formData.areaSqft ? parseInt(formData.areaSqft) : null,
-        locationId: parseInt(formData.locationId),
-        categoryId: parseInt(formData.categoryId)
-      };
-
       if (isEdit) {
-        await propertiesAPI.updateProperty(id, propertyData);
-        setSuccess('Property updated successfully!');
+        await propertyAPI.update(id, formData);
       } else {
-        await propertiesAPI.createProperty(propertyData);
-        setSuccess('Property created successfully!');
+        await propertyAPI.create(formData);
       }
-
-      // Redirect after success
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-
+      navigate('/my-properties');
     } catch (error) {
-      setError(handleAPIError(error));
+      console.error('Error saving property:', error);
+      setError(error.response?.data?.message || 'Failed to save property');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading && !locations.length) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
-        <Card className="p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isEdit ? 'Edit Property' : 'Add New Property'}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              {isEdit ? 'Update your property details' : 'List your property for sale or rent'}
-            </p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        {isEdit ? 'Edit Property' : 'Post New Property'}
+      </h1>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
+        {/* Basic Information */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <input
+                type="text"
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="e.g., Modern 3 Bedroom House in Colombo"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description *
+              </label>
+              <textarea
+                name="description"
+                required
+                value={formData.description}
+                onChange={handleChange}
+                rows="5"
+                className="input-field"
+                placeholder="Describe your property..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Property Type *
+                </label>
+                <select
+                  name="type"
+                  required
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  {PROPERTY_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Listing Type *
+                </label>
+                <select
+                  name="listingType"
+                  required
+                  value={formData.listingType}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  {LISTING_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Price (Rs.) *
+              </label>
+              <input
+                type="number"
+                name="price"
+                required
+                value={formData.price}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="e.g., 15000000"
+              />
+            </div>
           </div>
+        </div>
 
-          {error && (
-            <Alert type="error" className="mb-6">
-              {error}
-            </Alert>
-          )}
+        {/* Location */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Location</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Address *
+              </label>
+              <input
+                type="text"
+                name="address"
+                required
+                value={formData.address}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Street address"
+              />
+            </div>
 
-          {success && (
-            <Alert type="success" className="mb-6">
-              {success}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Title *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  District *
                 </label>
-                <Input
+                <select
+                  name="district"
+                  required
+                  value={formData.district}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value="">Select District</option>
+                  {DISTRICTS.map(district => (
+                    <option key={district} value={district}>{district}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  City *
+                </label>
+                <input
                   type="text"
-                  placeholder="e.g., Beautiful 3BR House in Colombo"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  name="city"
                   required
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="City"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Postal Code
                 </label>
-                <textarea
-                  className="input-field min-h-[120px] resize-y"
-                  placeholder="Describe your property, its features, amenities, and surroundings..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Type *
-                  </label>
-                  <Select
-                    value={formData.propertyType}
-                    onChange={(e) => handleInputChange('propertyType', e.target.value)}
-                    required
-                  >
-                    <option value="SALE">For Sale</option>
-                    <option value="RENT">For Rent</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price (Rs.) *
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder={formData.propertyType === 'RENT' ? 'Monthly rent' : 'Sale price'}
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Property Details */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">Property Details</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bedrooms
-                  </label>
-                  <Select
-                    value={formData.bedrooms}
-                    onChange={(e) => handleInputChange('bedrooms', e.target.value)}
-                  >
-                    <option value="">Select</option>
-                    <option value="1">1 Bedroom</option>
-                    <option value="2">2 Bedrooms</option>
-                    <option value="3">3 Bedrooms</option>
-                    <option value="4">4 Bedrooms</option>
-                    <option value="5">5+ Bedrooms</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bathrooms
-                  </label>
-                  <Select
-                    value={formData.bathrooms}
-                    onChange={(e) => handleInputChange('bathrooms', e.target.value)}
-                  >
-                    <option value="">Select</option>
-                    <option value="1">1 Bathroom</option>
-                    <option value="2">2 Bathrooms</option>
-                    <option value="3">3 Bathrooms</option>
-                    <option value="4">4+ Bathrooms</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Area (Sq Ft)
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="e.g., 1200"
-                    value={formData.areaSqft}
-                    onChange={(e) => handleInputChange('areaSqft', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">Location</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Address *
-                </label>
-                <Input
+                <input
                   type="text"
-                  placeholder="e.g., 123 Main Street, Nugegoda"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  required
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Postal code"
                 />
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    District/City *
-                  </label>
-                  <Select
-                    value={formData.locationId}
-                    onChange={(e) => handleInputChange('locationId', e.target.value)}
-                    required
-                  >
-                    <option value="">Select Location</option>
-                    {locations.map(location => (
-                      <option key={location.locationId} value={location.locationId}>
-                        {location.city}, {location.district}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Category *
-                  </label>
-                  <Select
-                    value={formData.categoryId}
-                    onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map(category => (
-                      <option key={category.categoryId} value={category.categoryId}>
-                        {category.categoryName}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
+        {/* Property Details */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Property Details</h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bedrooms
+              </label>
+              <input
+                type="number"
+                name="bedrooms"
+                value={formData.bedrooms}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
 
-            {/* Image Upload Placeholder */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">Property Images</h2>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <div className="text-gray-400 text-4xl mb-4">📷</div>
-                <p className="text-gray-600 mb-2">Image upload coming soon</p>
-                <p className="text-sm text-gray-500">
-                  For now, properties will display with a placeholder image
-                </p>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bathrooms
+              </label>
+              <input
+                type="number"
+                name="bathrooms"
+                value={formData.bathrooms}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
 
-            {/* Form Actions */}
-            <div className="flex gap-4 pt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => navigate(-1)}
-                disabled={loading}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="flex-1"
-              >
-                {loading ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
-                  isEdit ? 'Update Property' : 'Create Property'
-                )}
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parking Spaces
+              </label>
+              <input
+                type="number"
+                name="parkingSpaces"
+                value={formData.parkingSpaces}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
-          </form>
-        </Card>
-      </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Land Size (perches)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                name="landSize"
+                value={formData.landSize}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Floor Size (sq ft)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                name="floorSize"
+                value={formData.floorSize}
+                onChange={handleChange}
+                className="input-field"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Features & Images */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Additional Information</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Features (JSON array format)
+              </label>
+              <textarea
+                name="features"
+                value={formData.features}
+                onChange={handleChange}
+                rows="3"
+                className="input-field"
+                placeholder='["Air Conditioning", "Swimming Pool", "Security System"]'
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter features as a JSON array</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Images (JSON array of URLs)
+              </label>
+              <textarea
+                name="images"
+                value={formData.images}
+                onChange={handleChange}
+                rows="3"
+                className="input-field"
+                placeholder='["https://example.com/image1.jpg", "https://example.com/image2.jpg"]'
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter image URLs as a JSON array</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : (isEdit ? 'Update Property' : 'Post Property')}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/my-properties')}
+            className="btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
 export default PropertyForm;
+

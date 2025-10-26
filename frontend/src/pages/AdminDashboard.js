@@ -1,713 +1,254 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { adminAPI, handleAPIError } from '../services/api';
-import { Card, Button, Badge, LoadingSpinner, Alert, Input } from '../components/common';
+import { formatPrice, STATUS_COLORS } from '../utils/constants';
 
 const AdminDashboard = () => {
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dashboardStats, setDashboardStats] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [activeTab, setActiveTab] = useState('properties');
   const [properties, setProperties] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'ADMIN') {
+    if (!isAdmin()) {
       navigate('/');
       return;
     }
-    loadDashboardData();
-  }, [isAuthenticated, user, navigate]);
+    fetchData();
+  }, [activeTab]);
 
-  const loadDashboardData = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError('');
-      
-      if (activeTab === 'overview') {
-        const statsResponse = await adminAPI.getEnhancedStats();
-        setDashboardStats(statsResponse.data);
-      } else if (activeTab === 'users') {
-        const usersResponse = await adminAPI.getAllUsers();
-        setUsers(usersResponse.data);
-      } else if (activeTab === 'properties') {
-        const propertiesResponse = await adminAPI.getAllProperties();
-        setProperties(propertiesResponse.data);
-      } else if (activeTab === 'reviews') {
-        const reviewsResponse = await adminAPI.getAllReviews();
-        setReviews(reviewsResponse.data);
+      if (activeTab === 'properties') {
+        const response = await adminAPI.getAllProperties(0, 100);
+        setProperties(response.data.content);
+      } else {
+        const response = await adminAPI.getAllUsers();
+        setUsers(response.data);
       }
-      
     } catch (error) {
-      setError(handleAPIError(error));
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleUserStatus = async (userId, currentStatus) => {
+  const handleApprove = async (id) => {
     try {
-      await adminAPI.toggleUserStatus(userId);
-      setUsers(prev => 
-        prev.map(u => 
-          u.userId === userId 
-            ? { ...u, isActive: !currentStatus }
-            : u
-        )
-      );
-      alert(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+      await adminAPI.approveProperty(id);
+      fetchData();
     } catch (error) {
-      alert('Failed to update user status: ' + handleAPIError(error));
+      console.error('Error approving property:', error);
+      alert('Failed to approve property');
     }
   };
 
-  const handleChangePropertyStatus = async (propertyId, newStatus) => {
+  const handleReject = async (id) => {
     try {
-      await adminAPI.changePropertyStatus(propertyId, newStatus);
-      setProperties(prev => 
-        prev.map(p => 
-          p.propertyId === propertyId 
-            ? { ...p, status: newStatus }
-            : p
-        )
-      );
-      alert(`Property status changed to ${newStatus}`);
+      await adminAPI.rejectProperty(id);
+      fetchData();
     } catch (error) {
-      alert('Failed to update property status: ' + handleAPIError(error));
+      console.error('Error rejecting property:', error);
+      alert('Failed to reject property');
     }
   };
 
-  const handleDeleteProperty = async (propertyId) => {
-    if (!window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await adminAPI.deleteProperty(propertyId);
-      setProperties(prev => prev.filter(p => p.propertyId !== propertyId));
-      alert('Property deleted successfully');
-    } catch (error) {
-      alert('Failed to delete property: ' + handleAPIError(error));
+  const handleDeleteProperty = async (id) => {
+    if (window.confirm('Are you sure you want to delete this property?')) {
+      try {
+        await adminAPI.deleteProperty(id);
+        setProperties(properties.filter(p => p.id !== id));
+      } catch (error) {
+        console.error('Error deleting property:', error);
+        alert('Failed to delete property');
+      }
     }
   };
 
-  const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-      return;
-    }
-
+  const handleToggleUserStatus = async (id) => {
     try {
-      await adminAPI.deleteReview(reviewId);
-      setReviews(prev => prev.filter(r => r.reviewId !== reviewId));
-      alert('Review deleted successfully');
+      await adminAPI.toggleUserStatus(id);
+      fetchData();
     } catch (error) {
-      alert('Failed to delete review: ' + handleAPIError(error));
+      console.error('Error toggling user status:', error);
+      alert('Failed to update user status');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage users, properties, and platform analytics</p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('properties')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'properties'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Properties Management
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'users'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Users Management
+          </button>
+        </nav>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-1/4">
-            <Card className="p-6">
-              <nav className="space-y-2">
-                <button
-                  onClick={() => {
-                    setActiveTab('overview');
-                    setLoading(true);
-                    loadDashboardData();
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'overview'
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  Overview & Stats
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('users');
-                    setLoading(true);
-                    loadDashboardData();
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'users'
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  User Management
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('properties');
-                    setLoading(true);
-                    loadDashboardData();
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'properties'
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  Property Management
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('reviews');
-                    setLoading(true);
-                    loadDashboardData();
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'reviews'
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  Reviews Management
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'settings'
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  Platform Settings
-                </button>
-              </nav>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:w-3/4">
-            {error && (
-              <Alert type="error" className="mb-6">
-                {error}
-              </Alert>
-            )}
-
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <LoadingSpinner size="xl" />
-              </div>
-            ) : (
-              <>
-                {/* Overview Tab */}
-                {activeTab === 'overview' && dashboardStats && (
-                  <div className="space-y-6">
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <Card className="p-6 text-center">
-                        <div className="text-3xl text-blue-600 mb-2">👥</div>
-                        <p className="text-3xl font-bold text-gray-900">
-                          {dashboardStats.users.total}
-                        </p>
-                        <p className="text-gray-600">Total Users</p>
-                        <p className="text-sm text-green-600 mt-1">
-                          {dashboardStats.users.active} active
-                        </p>
-                      </Card>
-                      
-                      <Card className="p-6 text-center">
-                        <div className="text-3xl text-green-600 mb-2">🏠</div>
-                        <p className="text-3xl font-bold text-gray-900">
-                          {dashboardStats.properties.total}
-                        </p>
-                        <p className="text-gray-600">Total Properties</p>
-                        <p className="text-sm text-green-600 mt-1">
-                          {dashboardStats.properties.active} active
-                        </p>
-                      </Card>
-
-                      <Card className="p-6 text-center">
-                        <div className="text-3xl text-orange-600 mb-2">🏪</div>
-                        <p className="text-3xl font-bold text-gray-900">
-                          {dashboardStats.users.sellers}
-                        </p>
-                        <p className="text-gray-600">Sellers</p>
-                      </Card>
-
-                      <Card className="p-6 text-center">
-                        <div className="text-3xl text-purple-600 mb-2">👨‍💼</div>
-                        <p className="text-3xl font-bold text-gray-900">
-                          {dashboardStats.users.buyers}
-                        </p>
-                        <p className="text-gray-600">Buyers</p>
-                      </Card>
-
-                      <Card className="p-6 text-center">
-                        <div className="text-3xl text-yellow-600 mb-2">⭐</div>
-                        <p className="text-3xl font-bold text-gray-900">
-                          {dashboardStats.reviews.total}
-                        </p>
-                        <p className="text-gray-600">Reviews</p>
-                        <p className="text-sm text-yellow-600 mt-1">
-                          Avg: {dashboardStats.reviews.averageRating.toFixed(1)} ⭐
-                        </p>
-                      </Card>
-                    </div>
-
-                    {/* Property Type Breakdown */}
-                    <Card className="p-6">
-                      <h2 className="text-xl font-semibold mb-4">Property Statistics</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="text-center">
-                          <div className="text-4xl text-green-600 mb-2">💰</div>
-                          <p className="text-2xl font-bold">{dashboardStats.properties.forSale}</p>
-                          <p className="text-gray-600">For Sale</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-4xl text-blue-600 mb-2">🏠</div>
-                          <p className="text-2xl font-bold">{dashboardStats.properties.forRent}</p>
-                          <p className="text-gray-600">For Rent</p>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Quick Actions */}
-                    <Card className="p-6">
-                      <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button 
-                          onClick={() => {
-                            setActiveTab('users');
-                            loadDashboardData();
-                          }}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          Manage Users
-                        </Button>
-                        <Button 
-                          onClick={() => {
-                            setActiveTab('properties');
-                            loadDashboardData();
-                          }}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          Manage Properties
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Users Management Tab */}
-                {activeTab === 'users' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-2xl font-semibold">User Management</h2>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="Search users..."
-                          className="w-64"
-                        />
-                        <Button variant="outline">Search</Button>
-                      </div>
-                    </div>
-
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                User
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Role
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Joined
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {users.map(user => (
-                              <tr key={user.userId} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                      <span className="text-blue-600">👤</span>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900">
-                                        {user.firstName} {user.lastName}
-                                      </p>
-                                      <p className="text-sm text-gray-500">
-                                        {user.email}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <Badge 
-                                    variant={
-                                      user.role === 'ADMIN' ? 'warning' :
-                                      user.role === 'SELLER' ? 'info' : 'secondary'
-                                    }
-                                  >
-                                    {user.role}
-                                  </Badge>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <Badge 
-                                    variant={user.isActive ? 'success' : 'danger'}
-                                  >
-                                    {user.isActive ? 'Active' : 'Inactive'}
-                                  </Badge>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {new Date(user.createdAt).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                  {user.role !== 'ADMIN' && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleToggleUserStatus(user.userId, user.isActive)}
-                                    >
-                                      {user.isActive ? 'Deactivate' : 'Activate'}
-                                    </Button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Properties Management Tab */}
-                {activeTab === 'properties' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-2xl font-semibold">Property Management</h2>
-                      <div className="flex gap-2">
-                        <select
-                          className="input-field w-40"
-                          onChange={(e) => {
-                            if (e.target.value === 'all') {
-                              loadDashboardData();
-                            }
-                          }}
-                        >
-                          <option value="all">All Properties</option>
-                          <option value="ACTIVE">Active Only</option>
-                          <option value="INACTIVE">Inactive Only</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {properties.map(property => (
-                        <PropertyAdminCard
-                          key={property.propertyId}
-                          property={property}
-                          onChangeStatus={handleChangePropertyStatus}
-                          onDelete={handleDeleteProperty}
-                        />
-                      ))}
-                    </div>
-
-                    {properties.length === 0 && (
-                      <Card className="p-12 text-center">
-                        <div className="text-gray-400 text-6xl mb-4">🏠</div>
-                        <h3 className="text-xl font-medium text-gray-600">
-                          No Properties Found
-                        </h3>
-                      </Card>
-                    )}
-                  </div>
-                )}
-
-                {/* Reviews Management Tab */}
-                {activeTab === 'reviews' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-2xl font-semibold">Reviews Management</h2>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="Search reviews..."
-                          className="w-64"
-                        />
-                        <Button variant="outline">Search</Button>
-                      </div>
-                    </div>
-
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Review
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Property
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                User
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Rating
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {reviews.map(review => (
-                              <tr key={review.reviewId} className="hover:bg-gray-50">
-                                <td className="px-6 py-4">
-                                  <div className="max-w-xs truncate">
-                                    {review.comment || 'No comment'}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {review.property.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    ID: {review.property.propertyId}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {review.user.firstName} {review.user.lastName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {review.user.email}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <span
-                                        key={star}
-                                        className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                                      >
-                                        ★
-                                      </span>
-                                    ))}
-                                    <span className="ml-2 text-sm text-gray-600">({review.rating})</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {new Date(review.createdAt).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(`/properties/${review.property.propertyId}`, '_blank')}
-                                    className="mr-2"
-                                  >
-                                    View Property
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDeleteReview(review.reviewId)}
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    Delete
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </Card>
-
-                    {reviews.length === 0 && (
-                      <Card className="p-12 text-center">
-                        <div className="text-gray-400 text-6xl mb-4">⭐</div>
-                        <h3 className="text-xl font-medium text-gray-600">
-                          No Reviews Found
-                        </h3>
-                        <p className="text-gray-500 mt-2">
-                          There are no reviews in the system yet.
-                        </p>
-                      </Card>
-                    )}
-                  </div>
-                )}
-
-                {/* Settings Tab */}
-                {activeTab === 'settings' && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-semibold">Platform Settings</h2>
-                    
-                    <Card className="p-6">
-                      <h3 className="text-lg font-semibold mb-4">System Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-600">Platform Version</p>
-                          <p className="font-semibold">PropertyLK v1.0</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-600">Database</p>
-                          <p className="font-semibold">PostgreSQL</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-600">Backend</p>
-                          <p className="font-semibold">Spring Boot</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-600">Frontend</p>
-                          <p className="font-semibold">React.js</p>
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-6">
-                      <h3 className="text-lg font-semibold mb-4">Admin Actions</h3>
-                      <div className="space-y-4">
-                        <Button variant="outline" className="w-full justify-start">
-                          Export User Data
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                          Export Property Data
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                          System Backup
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Properties Tab */}
+          {activeTab === 'properties' && (
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Property
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Owner
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {properties.map((property) => (
+                    <tr key={property.id}>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{property.title}</div>
+                        <div className="text-sm text-gray-500">
+                          {property.city}, {property.district}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {property.ownerName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatPrice(property.price)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`badge ${STATUS_COLORS[property.status]}`}>
+                          {property.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        {property.status === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(property.id)}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(property.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleDeleteProperty(property.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Users Tab */}
+          {activeTab === 'users' && (
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Roles
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                        <div className="text-sm text-gray-500">{user.fullName}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {user.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {user.roles.join(', ')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`badge ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {user.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleToggleUserStatus(user.id)}
+                          className="text-primary-600 hover:text-primary-900"
+                        >
+                          {user.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
-// Property Card Component for Admin
-const PropertyAdminCard = ({ property, onChangeStatus, onDelete }) => {
-  const formatPrice = (price) => {
-    if (price >= 10000000) {
-      return `Rs. ${(price / 10000000).toFixed(1)}Cr`;
-    } else if (price >= 100000) {
-      return `Rs. ${(price / 100000).toFixed(1)}L`;
-    } else {
-      return `Rs. ${price.toLocaleString()}`;
-    }
-  };
-
-  return (
-    <Card className="overflow-hidden">
-      <div className="h-32 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-        <div className="text-white text-2xl">🏠</div>
-      </div>
-      
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <Badge 
-            variant={property.propertyType === 'SALE' ? 'success' : 'info'}
-          >
-            {property.propertyType}
-          </Badge>
-          <Badge 
-            variant={property.status === 'ACTIVE' ? 'success' : 'secondary'}
-          >
-            {property.status}
-          </Badge>
-        </div>
-
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-          {property.title}
-        </h3>
-
-        <p className="text-blue-600 font-semibold mb-2">
-          {formatPrice(property.price)}
-        </p>
-
-        <p className="text-sm text-gray-600 mb-2">
-          📍 {property.location.city}, {property.location.district}
-        </p>
-
-        <p className="text-sm text-gray-600 mb-3">
-          👤 {property.seller.firstName} {property.seller.lastName}
-        </p>
-
-        {/* Admin Actions */}
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <select
-              className="input-field text-sm flex-1"
-              value={property.status}
-              onChange={(e) => onChangeStatus(property.propertyId, e.target.value)}
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="SOLD">Sold</option>
-              <option value="RENTED">Rented</option>
-            </select>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex-1"
-              onClick={() => window.open(`/properties/${property.propertyId}`, '_blank')}
-            >
-              View
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => onDelete(property.propertyId)}
-              className="text-red-600 hover:text-red-700"
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-};
-
 export default AdminDashboard;
+

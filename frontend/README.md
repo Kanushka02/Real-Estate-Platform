@@ -1,70 +1,150 @@
-# Getting Started with Create React App
+# Real Estate Frontend - React Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
+This is the frontend application for the Real Estate Listing Platform built with React and Tailwind CSS.
+
+## Features
+- 🏠 Browse and search properties
+- 🔍 Advanced filtering by type, location, price, etc.
+- ⭐ Save favorite properties
+- 📝 Post and manage your own properties
+- 🧑‍💼 Admin dashboard for property and user management
+- 🔐 JWT-based authentication
+- 📱 Responsive design with Tailwind CSS
+
+## Technologies
+- **Framework:** React 18
+- **Styling:** Tailwind CSS
+- **Routing:** React Router v6
+- **HTTP Client:** Axios
+- **Build Tool:** Create React App
+
+## Prerequisites
+- Node.js 16 or higher
+- npm or yarn
+
+## Installation
+
+1. Navigate to frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm start
+```
+
+The application will open in your browser at `http://localhost:3000`
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm start` - Runs the app in development mode
+- `npm build` - Builds the app for production
+- `npm test` - Runs the test suite
+- `npm eject` - Ejects from Create React App (one-way operation)
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+src/
+├── components/          # Reusable components
+│   ├── Navbar.js
+│   ├── Footer.js
+│   ├── PropertyCard.js
+│   └── PropertyFilter.js
+├── pages/              # Page components
+│   ├── Home.js
+│   ├── Login.js
+│   ├── Signup.js
+│   ├── Properties.js
+│   ├── PropertyDetails.js
+│   ├── PropertyForm.js
+│   ├── MyProperties.js
+│   ├── Favorites.js
+│   └── AdminDashboard.js
+├── context/            # React Context
+│   └── AuthContext.js
+├── services/           # API services
+│   └── api.js
+├── utils/              # Utilities
+│   └── constants.js
+├── App.js              # Main app component
+├── index.js            # Entry point
+└── index.css           # Global styles
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Features Guide
 
-### `npm test`
+### User Features
+1. **Browse Properties**: View all available properties with pagination
+2. **Search**: Search properties by keywords
+3. **Filter**: Filter by type, location, price range, bedrooms, etc.
+4. **Property Details**: View detailed information about each property
+5. **Favorites**: Save properties to favorites for later viewing
+6. **Post Property**: Create new property listings
+7. **Manage Properties**: Edit or delete your own properties
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Admin Features
+1. **Property Management**: View, approve, reject, or delete all properties
+2. **User Management**: View and manage user accounts
+3. **Status Control**: Activate or deactivate user accounts
 
-### `npm run build`
+## Configuration
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The API base URL is set in `src/services/api.js`:
+```javascript
+const API_URL = 'http://localhost:8080/api';
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Update this URL if your backend is running on a different address.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Authentication
 
-### `npm run eject`
+The app uses JWT tokens for authentication:
+- Tokens are stored in localStorage
+- Automatically added to API requests via Axios interceptors
+- User state managed through React Context
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Styling
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Tailwind CSS is configured with custom colors and components:
+- Primary color palette based on blue shades
+- Custom utility classes for buttons, inputs, and cards
+- Responsive breakpoints for mobile, tablet, and desktop
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Sri Lanka-Specific Features
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- All 25 districts of Sri Lanka
+- Major cities by district
+- Price formatting in Sri Lankan Rupees (Rs.)
+- Perches for land measurement
+- Square feet for floor size
 
-## Learn More
+## Build for Production
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Create production build:
+```bash
+npm run build
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. The build folder will contain optimized production files
 
-### Code Splitting
+3. Deploy the contents of the `build` folder to your hosting service
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Browser Support
 
-### Analyzing the Bundle Size
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## License
 
-### Making a Progressive Web App
+This project is part of the Real Estate Listing Platform.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
