@@ -25,12 +25,12 @@ import java.util.Set;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id;
     
     @NotBlank
     @Size(min = 3, max = 50)
     @Column(nullable = false, unique = true)
-    private String username;
+    public String username;
     
     @NotBlank
     @Size(max = 100)
@@ -64,6 +64,12 @@ public class User {
     
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
     
     @PreUpdate
     protected void onUpdate() {

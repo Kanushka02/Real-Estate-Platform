@@ -3,91 +3,97 @@ package com.realestate.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "properties")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Property {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id;
     
     @NotBlank
     @Column(nullable = false)
-    private String title;
+    public String title;
     
     @Column(columnDefinition = "TEXT")
-    private String description;
+    public String description;
     
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PropertyType type;
+    public PropertyType type;
     
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ListingType listingType;
+    public ListingType listingType;
     
     @NotNull
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal price;
+    public BigDecimal price;
     
     @NotBlank
     @Column(nullable = false)
-    private String address;
+    public String address;
     
     @NotBlank
     @Column(nullable = false)
-    private String city;
+    public String city;
     
     @NotBlank
     @Column(nullable = false)
-    private String district;
+    public String district;
     
-    private Integer bedrooms;
-    private Integer bathrooms;
+    public Integer bedrooms;
+    public Integer bathrooms;
     
     @Column(precision = 10, scale = 2)
-    private BigDecimal landSize; // in perches
+    public BigDecimal landSize; // in perches
     
     @Column(precision = 10, scale = 2)
-    private BigDecimal floorSize; // in sq ft
+    public BigDecimal floorSize; // in sq ft
     
-    private Integer parkingSpaces;
+    public Integer parkingSpaces;
     
+    // Keep images field for backward compatibility with existing DB data
     @Column(columnDefinition = "TEXT")
-    private String features; // JSON string or comma-separated
+    public String images; // JSON array of image URLs or base64 data
     
-    @Column(columnDefinition = "TEXT")
-    private String images; // JSON array of image URLs
+    // New image fields for proper photo handling
+    public String imageName; // Original filename of the image
+    public String imageType; // MIME type of the image (e.g., "image/jpeg", "image/png")
+    
+    @Lob
+    public byte[] imageData; // Binary data of the image
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    public User owner;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PropertyStatus status = PropertyStatus.PENDING;
+    public PropertyStatus status = PropertyStatus.PENDING;
     
     @Column(nullable = false)
-    private Boolean featured = false;
+    public Boolean featured = false;
     
-    private LocalDateTime approvedAt;
+    public LocalDateTime approvedAt;
     
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    public LocalDateTime createdAt = LocalDateTime.now();
     
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    public LocalDateTime updatedAt = LocalDateTime.now();
+    
+    // No manual constructors needed - using Lombok @NoArgsConstructor
     
     @PreUpdate
     protected void onUpdate() {

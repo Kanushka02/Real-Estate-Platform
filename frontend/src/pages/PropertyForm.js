@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { propertyAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS, PROPERTY_TYPES, LISTING_TYPES } from '../utils/constants';
+import { fileToByteArray, getImageSource, isValidImageType, isValidImageSize, getFileSizeMB } from '../utils/imageUtils';
 
 const PropertyForm = () => {
   const { id } = useParams();
@@ -19,15 +20,16 @@ const PropertyForm = () => {
     address: '',
     city: '',
     district: '',
-    postalCode: '',
     bedrooms: '',
     bathrooms: '',
     landSize: '',
     floorSize: '',
     parkingSpaces: '',
-    features: '',
-    images: '',
   });
+
+  // Image handling state
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -56,15 +58,18 @@ const PropertyForm = () => {
         address: property.address,
         city: property.city,
         district: property.district,
-        postalCode: property.postalCode || '',
         bedrooms: property.bedrooms || '',
         bathrooms: property.bathrooms || '',
         landSize: property.landSize || '',
         floorSize: property.floorSize || '',
         parkingSpaces: property.parkingSpaces || '',
-        features: property.features || '',
-        images: property.images || '',
       });
+
+      // Handle existing image data using utility function
+      const imageSource = getImageSource(property);
+      if (imageSource !== '/no-image.png') {
+        setImagePreview(imageSource);
+      }
     } catch (error) {
       console.error('Error fetching property:', error);
       setError('Failed to load property');
@@ -78,17 +83,54 @@ const PropertyForm = () => {
     });
   };
 
+  // Image handling functions
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!isValidImageType(file)) {
+        setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+        return;
+      }
+      
+      // Validate file size
+      if (!isValidImageSize(file)) {
+        setError(`File size too large. Maximum size is 5MB. Current size: ${getFileSizeMB(file)}MB`);
+        return;
+      }
+      
+      setSelectedImage(file);
+      setError(''); // Clear any previous errors
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Submit property data without image
+      let propertyResponse;
       if (isEdit) {
-        await propertyAPI.update(id, formData);
+        propertyResponse = await propertyAPI.update(id, formData);
       } else {
-        await propertyAPI.create(formData);
+        propertyResponse = await propertyAPI.create(formData);
       }
+
+      // Upload photo separately if selected
+      if (selectedImage) {
+        const propertyId = isEdit ? id : propertyResponse.data.id;
+        await propertyAPI.uploadPhoto(propertyId, selectedImage, true); // true = isPrimary
+      }
+
       navigate('/my-properties');
     } catch (error) {
       console.error('Error saving property:', error);
@@ -252,20 +294,6 @@ const PropertyForm = () => {
                   placeholder="City"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Postal Code
-                </label>
-                <input
-                  type="text"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Postal code"
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -344,39 +372,36 @@ const PropertyForm = () => {
           </div>
         </div>
 
-        {/* Features & Images */}
+        {/* Additional Information */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Additional Information</h2>
-          
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Features (JSON array format)
+                Add Photo
               </label>
-              <textarea
-                name="features"
-                value={formData.features}
-                onChange={handleChange}
-                rows="3"
-                className="input-field"
-                placeholder='["Air Conditioning", "Swimming Pool", "Security System"]'
+              <input 
+                type="file" 
+                name="photo" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="input-field" 
               />
-              <p className="text-xs text-gray-500 mt-1">Enter features as a JSON array</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Images (JSON array of URLs)
-              </label>
-              <textarea
-                name="images"
-                value={formData.images}
-                onChange={handleChange}
-                rows="3"
-                className="input-field"
-                placeholder='["https://example.com/image1.jpg", "https://example.com/image2.jpg"]'
-              />
-              <p className="text-xs text-gray-500 mt-1">Enter image URLs as a JSON array</p>
+              {imagePreview && (
+                <div className="mt-2">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-32 h-32 object-cover rounded-lg border"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selected: {selectedImage?.name}
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Upload a photo of the property (supports JPEG, PNG, GIF formats).
+              </p>
             </div>
           </div>
         </div>

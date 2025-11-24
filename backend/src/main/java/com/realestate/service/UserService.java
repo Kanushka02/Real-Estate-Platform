@@ -3,11 +3,14 @@ package com.realestate.service;
 import com.realestate.dto.UserDTO;
 import com.realestate.model.User;
 import com.realestate.repository.UserRepository;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 public class UserService {

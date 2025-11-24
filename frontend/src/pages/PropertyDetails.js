@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { propertyAPI, favoriteAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice, STATUS_COLORS } from '../utils/constants';
+import { getImageSource } from '../utils/imageUtils';
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -22,8 +23,20 @@ const PropertyDetails = () => {
 
   const fetchProperty = async () => {
     try {
-      const response = await propertyAPI.getById(id);
-      setProperty(response.data);
+      const [propertyResponse, imageResponse] = await Promise.all([
+        propertyAPI.getById(id),
+        propertyAPI.getPropertyImage(id)
+      ]);
+      
+      const propertyData = propertyResponse.data;
+      
+      // Add image data to property
+      if (imageResponse.data) {
+        propertyData.imageData = Array.from(new Uint8Array(imageResponse.data));
+        propertyData.imageType = imageResponse.headers['content-type'];
+      }
+      
+      setProperty(propertyData);
     } catch (error) {
       console.error('Error fetching property:', error);
     } finally {
@@ -75,70 +88,19 @@ const PropertyDetails = () => {
     );
   }
 
-  // Safely parse images with error handling
-  let images = [];
-  try {
-    if (property.images && property.images.trim() !== '') {
-      const parsed = JSON.parse(property.images);
-      images = Array.isArray(parsed) ? parsed : [];
-    }
-  } catch (e) {
-    console.warn('Failed to parse images:', e);
-    images = [];
-  }
-
-  // Safely parse features with error handling
-  let features = [];
-  try {
-    if (property.features && property.features.trim() !== '') {
-      const parsed = JSON.parse(property.features);
-      features = Array.isArray(parsed) ? parsed : [];
-    }
-  } catch (e) {
-    console.warn('Failed to parse features:', e);
-    features = [];
-  }
-
-  const defaultImage = 'https://via.placeholder.com/800x400?text=No+Image+Available';
+  // Use utility function to get image source
+  const mainImage = getImageSource(property);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Image Gallery */}
+      {/* Image Display */}
       <div className="mb-8">
-        {images.length > 0 ? (
-          <>
-            <img
-              src={images[currentImageIndex] || defaultImage}
-              alt={property.title}
-              className="w-full h-96 object-cover rounded-lg mb-4"
-              onError={(e) => {
-                e.target.src = defaultImage;
-              }}
-            />
-            {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-4">
-                {images.map((img, index) => (
-                  <img
-                    key={index}
-                    src={img || defaultImage}
-                    alt={`${property.title} ${index + 1}`}
-                    onClick={() => setCurrentImageIndex(index)}
-                    onError={(e) => {
-                      e.target.src = defaultImage;
-                    }}
-                    className={`h-24 object-cover rounded cursor-pointer ${
-                      index === currentImageIndex ? 'ring-2 ring-primary-600' : ''
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
-            <span className="text-gray-500">No images available</span>
-          </div>
-        )}
+        <img
+          src={mainImage}
+          alt={property.title}
+          className="w-full h-96 object-cover rounded-lg mb-4"
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/800x400?text=No+Image+Available'; }}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -205,19 +167,7 @@ const PropertyDetails = () => {
             <p className="text-gray-700 whitespace-pre-line">{property.description}</p>
           </div>
 
-          {features.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">Features</h2>
-              <ul className="grid grid-cols-2 gap-2">
-                {features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-gray-700">
-                    <span className="mr-2">✓</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* REMOVE: Features Section */}
         </div>
 
         {/* Sidebar */}

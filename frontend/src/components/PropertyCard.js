@@ -1,22 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatPrice, STATUS_COLORS } from '../utils/constants';
+import { getImageSource } from '../utils/imageUtils';
 
 const PropertyCard = ({ property, showStatus = false }) => {
-  // Safely parse images with error handling
-  let images = [];
-  try {
-    if (property.images && property.images.trim() !== '') {
-      const parsed = JSON.parse(property.images);
-      images = Array.isArray(parsed) ? parsed : [];
-    }
-  } catch (e) {
-    console.warn('Failed to parse images for property:', property.id, e);
-    images = [];
-  }
-
-  const defaultImage = 'https://via.placeholder.com/400x300?text=No+Image';
-  const mainImage = (images && images.length > 0 && images[0]) ? images[0] : defaultImage;
+  // Use utility function to get image source
+  const mainImage = getImageSource(property);
+  const defaultImage = '/no-image.png';
 
   return (
     <div className="card hover:shadow-xl transition-shadow duration-300">
@@ -26,9 +16,11 @@ const PropertyCard = ({ property, showStatus = false }) => {
           alt={property.title}
           className="w-full h-48 object-cover"
           onError={(e) => {
-            // Fallback if image fails to load
+            console.warn('Image failed to load:', property.id);
             e.target.src = defaultImage;
+            e.target.onerror = null; // Prevent infinite loop
           }}
+          loading="lazy"
         />
         {showStatus && property.status && (
           <span className={`badge absolute top-2 right-2 ${STATUS_COLORS[property.status]}`}>

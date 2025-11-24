@@ -39,6 +39,9 @@ export const propertyAPI = {
   
   getById: (id) => 
     api.get(`/properties/${id}`),
+
+  getPropertyImage: (id) =>
+    api.get(`/properties/${id}/image`, { responseType: 'arraybuffer' }),
   
   getMyProperties: (page = 0, size = 10) => 
     api.get(`/properties/my-properties?page=${page}&size=${size}`),
@@ -74,6 +77,25 @@ export const propertyAPI = {
   
   delete: (id) => 
     api.delete(`/properties/${id}`),
+  
+  // Photo upload methods
+  uploadPhoto: (propertyId, file, isPrimary = false) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    return api.post(`/properties/${propertyId}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  getPropertyImage: (propertyId) => 
+    api.get(`/properties/${propertyId}/image`, {
+      responseType: 'blob',
+    }).then(response => {
+      return URL.createObjectURL(response.data);
+    }),
 };
 
 // Favorite API

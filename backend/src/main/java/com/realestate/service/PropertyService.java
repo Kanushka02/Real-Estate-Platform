@@ -12,11 +12,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 public class PropertyService {
@@ -29,28 +32,29 @@ public class PropertyService {
     
     public PropertyDTO convertToDTO(Property property) {
         PropertyDTO dto = new PropertyDTO();
-        dto.setId(property.getId());
-        dto.setTitle(property.getTitle());
-        dto.setDescription(property.getDescription());
-        dto.setType(property.getType());
-        dto.setListingType(property.getListingType());
-        dto.setPrice(property.getPrice());
-        dto.setAddress(property.getAddress());
-        dto.setCity(property.getCity());
-        dto.setDistrict(property.getDistrict());
-        dto.setBedrooms(property.getBedrooms());
-        dto.setBathrooms(property.getBathrooms());
-        dto.setLandSize(property.getLandSize());
-        dto.setFloorSize(property.getFloorSize());
-        dto.setParkingSpaces(property.getParkingSpaces());
-        dto.setFeatures(property.getFeatures());
-        dto.setImages(property.getImages());
-        dto.setOwnerId(property.getOwner().getId());
-        dto.setOwnerName(property.getOwner().getUsername());
-        dto.setStatus(property.getStatus());
-        dto.setFeatured(property.getFeatured());
-        dto.setCreatedAt(property.getCreatedAt());
-        dto.setUpdatedAt(property.getUpdatedAt());
+        dto.id = property.id;
+        dto.title = property.title;
+        dto.description = property.description;
+        dto.type = property.type;
+        dto.listingType = property.listingType;
+        dto.price = property.price;
+        dto.address = property.address;
+        dto.city = property.city;
+        dto.district = property.district;
+        dto.bedrooms = property.bedrooms;
+        dto.bathrooms = property.bathrooms;
+        dto.landSize = property.landSize;
+        dto.floorSize = property.floorSize;
+        dto.parkingSpaces = property.parkingSpaces;
+        dto.imageName = property.imageName;
+        dto.imageType = property.imageType;
+        dto.imageData = property.imageData;
+        dto.ownerId = property.owner.id;
+        dto.ownerName = property.owner.username;
+        dto.status = property.status;
+        dto.featured = property.featured;
+        dto.createdAt = property.createdAt;
+        dto.updatedAt = property.updatedAt;
         return dto;
     }
     
@@ -60,23 +64,24 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Property property = new Property();
-        property.setTitle(propertyDTO.getTitle());
-        property.setDescription(propertyDTO.getDescription());
-        property.setType(propertyDTO.getType());
-        property.setListingType(propertyDTO.getListingType());
-        property.setPrice(propertyDTO.getPrice());
-        property.setAddress(propertyDTO.getAddress());
-        property.setCity(propertyDTO.getCity());
-        property.setDistrict(propertyDTO.getDistrict());
-        property.setBedrooms(propertyDTO.getBedrooms());
-        property.setBathrooms(propertyDTO.getBathrooms());
-        property.setLandSize(propertyDTO.getLandSize());
-        property.setFloorSize(propertyDTO.getFloorSize());
-        property.setParkingSpaces(propertyDTO.getParkingSpaces());
-        property.setFeatures(propertyDTO.getFeatures());
-        property.setImages(propertyDTO.getImages());
-        property.setOwner(owner);
-        property.setStatus(Property.PropertyStatus.PENDING);
+        property.title = propertyDTO.title;
+        property.description = propertyDTO.description;
+        property.type = propertyDTO.type;
+        property.listingType = propertyDTO.listingType;
+        property.price = propertyDTO.price;
+        property.address = propertyDTO.address;
+        property.city = propertyDTO.city;
+        property.district = propertyDTO.district;
+        property.bedrooms = propertyDTO.bedrooms;
+        property.bathrooms = propertyDTO.bathrooms;
+        property.landSize = propertyDTO.landSize;
+        property.floorSize = propertyDTO.floorSize;
+        property.parkingSpaces = propertyDTO.parkingSpaces;
+        property.imageName = propertyDTO.imageName;
+        property.imageType = propertyDTO.imageType;
+        property.imageData = propertyDTO.imageData;
+        property.owner = owner;
+        property.status = Property.PropertyStatus.PENDING;
         
         Property saved = propertyRepository.save(property);
         return convertToDTO(saved);
@@ -91,25 +96,26 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         // Check if user is the owner
-        if (!property.getOwner().getId().equals(user.getId())) {
+        if (!property.owner.id.equals(user.id)) {
             throw new RuntimeException("You are not authorized to update this property");
         }
         
-        property.setTitle(propertyDTO.getTitle());
-        property.setDescription(propertyDTO.getDescription());
-        property.setType(propertyDTO.getType());
-        property.setListingType(propertyDTO.getListingType());
-        property.setPrice(propertyDTO.getPrice());
-        property.setAddress(propertyDTO.getAddress());
-        property.setCity(propertyDTO.getCity());
-        property.setDistrict(propertyDTO.getDistrict());
-        property.setBedrooms(propertyDTO.getBedrooms());
-        property.setBathrooms(propertyDTO.getBathrooms());
-        property.setLandSize(propertyDTO.getLandSize());
-        property.setFloorSize(propertyDTO.getFloorSize());
-        property.setParkingSpaces(propertyDTO.getParkingSpaces());
-        property.setFeatures(propertyDTO.getFeatures());
-        property.setImages(propertyDTO.getImages());
+        property.title = propertyDTO.title;
+        property.description = propertyDTO.description;
+        property.type = propertyDTO.type;
+        property.listingType = propertyDTO.listingType;
+        property.price = propertyDTO.price;
+        property.address = propertyDTO.address;
+        property.city = propertyDTO.city;
+        property.district = propertyDTO.district;
+        property.bedrooms = propertyDTO.bedrooms;
+        property.bathrooms = propertyDTO.bathrooms;
+        property.landSize = propertyDTO.landSize;
+        property.floorSize = propertyDTO.floorSize;
+        property.parkingSpaces = propertyDTO.parkingSpaces;
+        property.imageName = propertyDTO.imageName;
+        property.imageType = propertyDTO.imageType;
+        property.imageData = propertyDTO.imageData;
         
         Property updated = propertyRepository.save(property);
         return convertToDTO(updated);
@@ -123,7 +129,7 @@ public class PropertyService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        if (!property.getOwner().getId().equals(user.getId())) {
+        if (!property.owner.id.equals(user.id)) {
             throw new RuntimeException("You are not authorized to delete this property");
         }
         
@@ -195,8 +201,8 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
         
-        property.setStatus(Property.PropertyStatus.APPROVED);
-        property.setApprovedAt(LocalDateTime.now());
+        property.status = Property.PropertyStatus.APPROVED;
+        property.approvedAt = LocalDateTime.now();
         
         Property updated = propertyRepository.save(property);
         return convertToDTO(updated);
@@ -207,7 +213,7 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
         
-        property.setStatus(Property.PropertyStatus.REJECTED);
+        property.status = Property.PropertyStatus.REJECTED;
         
         Property updated = propertyRepository.save(property);
         return convertToDTO(updated);
@@ -225,5 +231,129 @@ public class PropertyService {
         return propertyRepository.findAll(pageable)
                 .map(this::convertToDTO);
     }
+
+    @Transactional
+    public PropertyDTO uploadPropertyImage(Long propertyId, MultipartFile image, String username) throws IOException {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check if user is the owner
+        if (!property.owner.id.equals(user.id)) {
+            throw new RuntimeException("You are not authorized to upload images for this property");
+        }
+
+        // Validate and save image
+        if (image != null && !image.isEmpty()) {
+            property.imageName = image.getOriginalFilename();
+            property.imageType = image.getContentType();
+            property.imageData = image.getBytes();
+        }
+
+        Property updated = propertyRepository.save(property);
+        return convertToDTO(updated);
+    }
+    
+    // // Photo upload methods
+    // @Transactional
+    // public PropertyDTO uploadPhoto(Long propertyId, MultipartFile file, Boolean isPrimary, String username) {
+    //     Property property = propertyRepository.findById(propertyId)
+    //             .orElseThrow(() -> new RuntimeException("Property not found"));
+        
+    //     User user = userRepository.findByUsername(username)
+    //             .orElseThrow(() -> new RuntimeException("User not found"));
+        
+    //     // Check if user is the owner
+    //     if (!property.owner.id.equals(user.id)) {
+    //         throw new RuntimeException("You are not authorized to upload photos for this property");
+    //     }
+        
+    //     try {
+    //         // Validate file
+    //         if (file.isEmpty()) {
+    //             throw new RuntimeException("File is empty");
+    //         }
+            
+    //         // Get file info
+    //         String originalFilename = file.getOriginalFilename();
+    //         String contentType = file.getContentType();
+    //         byte[] imageData = file.getBytes();
+            
+    //         // Validate file type
+    //         if (contentType == null || !contentType.startsWith("image/")) {
+    //             throw new RuntimeException("File must be an image");
+    //         }
+            
+    //         // Update property with new image data
+    //         property.imageName = originalFilename;
+    //         property.imageType = contentType;
+    //         property.imageData = imageData;
+            
+    //         Property updated = propertyRepository.save(property);
+    //         return convertToDTO(updated);
+            
+    //     } catch (IOException e) {
+    //         throw new RuntimeException("Failed to process image file", e);
+    //     }
+    // }
+    
+    // public byte[] getPhotoData(Long propertyId, Long photoId) {
+    //     Property property = propertyRepository.findById(propertyId)
+    //             .orElseThrow(() -> new RuntimeException("Property not found"));
+        
+    //     // For now, return the single image data
+    //     // In a multi-image system, you would find the specific photo by photoId
+    //     if (property.imageData == null) {
+    //         throw new RuntimeException("Photo not found");
+    //     }
+        
+    //     return property.imageData;
+    // }
+    
+    // @Transactional
+    // public void deletePhoto(Long propertyId, Long photoId, String username) {
+    //     Property property = propertyRepository.findById(propertyId)
+    //             .orElseThrow(() -> new RuntimeException("Property not found"));
+        
+    //     User user = userRepository.findByUsername(username)
+    //             .orElseThrow(() -> new RuntimeException("User not found"));
+        
+    //     // Check if user is the owner
+    //     if (!property.owner.id.equals(user.id)) {
+    //         throw new RuntimeException("You are not authorized to delete photos for this property");
+    //     }
+        
+    //     // Clear image data
+    //     property.imageName = null;
+    //     property.imageType = null;
+    //     property.imageData = null;
+        
+    //     propertyRepository.save(property);
+    // }
+    
+    // @Transactional
+    // public PropertyDTO setPrimaryPhoto(Long propertyId, Long photoId, String username) {
+    //     Property property = propertyRepository.findById(propertyId)
+    //             .orElseThrow(() -> new RuntimeException("Property not found"));
+        
+    //     User user = userRepository.findByUsername(username)
+    //             .orElseThrow(() -> new RuntimeException("User not found"));
+        
+    //     // Check if user is the owner
+    //     if (!property.owner.id.equals(user.id)) {
+    //         throw new RuntimeException("You are not authorized to modify photos for this property");
+    //     }
+        
+    //     // For single image system, this just ensures the image is marked as primary
+    //     // In a multi-image system, you would find the specific photo and mark it as primary
+    //     if (property.imageData == null) {
+    //         throw new RuntimeException("No photo found to set as primary");
+    //     }
+        
+    //     Property updated = propertyRepository.save(property);
+    //     return convertToDTO(updated);
+    // }
 }
 
