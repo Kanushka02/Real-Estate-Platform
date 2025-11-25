@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Home, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 const Footer = () => {
@@ -8,12 +9,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand Section */}
           <div className="lg:col-span-1">
-            <a href="/" className="flex items-center gap-2.5 mb-4 group">
+            <Link to="/" className="flex items-center gap-2.5 mb-4 group">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
                 <Home className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-semibold">RealEstate</span>
-            </a>
+            </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Your trusted platform for finding and listing properties in Sri Lanka. Making real estate transactions simple and secure.
             </p>
@@ -40,24 +41,24 @@ const Footer = () => {
             <h4 className="text-base font-semibold mb-4 text-white">Quick Links</h4>
             <ul className="space-y-3">
               <li>
-                <a href="/" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Home</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/properties" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/properties" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Properties</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/about" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/about" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">About Us</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/contact" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/contact" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Contact</span>
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -67,24 +68,24 @@ const Footer = () => {
             <h4 className="text-base font-semibold mb-4 text-white">Property Types</h4>
             <ul className="space-y-3">
               <li>
-                <a href="/properties?type=house" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/properties?type=house" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Houses</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/properties?type=apartment" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/properties?type=apartment" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Apartments</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/properties?type=land" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/properties?type=land" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Land</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/properties?type=commercial" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
+                <Link to="/properties?type=commercial" className="text-gray-400 hover:text-white transition-colors text-sm inline-flex items-center group">
                   <span className="group-hover:translate-x-1 transition-transform">Commercial</span>
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -93,9 +94,9 @@ const Footer = () => {
           <div>
             <h4 className="text-base font-semibold mb-4 text-white">Contact Us</h4>
             <div className="space-y-3">
-              <a href="mailto:info@realestate.lk" className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors text-sm group">
+              <a href="mailto:kanushkakahakotuwa2001@gmail.com" className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors text-sm group">
                 <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-500" />
-                <span className="group-hover:translate-x-1 transition-transform">info@realestate.lk</span>
+                <span className="group-hover:translate-x-1 transition-transform">kanushkakahakotuwa2001@gmail.com</span>
               </a>
               <a href="tel:+94112345678" className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors text-sm group">
                 <Phone className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-500" />
@@ -116,15 +117,15 @@ const Footer = () => {
               © 2025 RealEstate Platform. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-6">
-              <a href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
+              <Link to="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
                 Privacy Policy
-              </a>
-              <a href="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
+              </Link>
+              <Link to="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
                 Terms of Service
-              </a>
-              <a href="/sitemap" className="text-gray-400 hover:text-white text-sm transition-colors">
+              </Link>
+              <Link to="/sitemap" className="text-gray-400 hover:text-white text-sm transition-colors">
                 Sitemap
-              </a>
+              </Link>
             </div>
           </div>
         </div>

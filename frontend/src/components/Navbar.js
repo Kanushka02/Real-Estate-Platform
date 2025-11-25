@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Home, Building2, Heart, FolderOpen, Settings, Plus, LogOut, Menu, X, User, LogIn } from 'lucide-react';
-
-// Mock hooks for demonstration
-const useAuth = () => ({
-  user: { username: 'JohnDoe' },
-  logout: () => console.log('Logged out'),
-  isAdmin: () => false
-});
-
-const useNavigate = () => (path) => console.log('Navigate to:', path);
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -24,48 +17,48 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo Section */}
           <div className="flex items-center">
-            <a href="/" className="flex items-center gap-2.5 group">
+            <Link to="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
                 <Home className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-semibold text-gray-900">RealEstate</span>
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation - Center */}
           <div className="hidden lg:flex items-center gap-1">
-            <a href="/" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+            <Link to="/" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
               <Home className="w-4 h-4" />
               <span>Home</span>
-            </a>
-            <a href="/properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+            </Link>
+            <Link to="/properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
               <Building2 className="w-4 h-4" />
               <span>Properties</span>
-            </a>
+            </Link>
 
             {user && (
               <>
-                <a href="/favorites" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+                <Link to="/favorites" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
                   <Heart className="w-4 h-4" />
                   <span>Favorites</span>
-                </a>
-                <a href="/my-properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+                </Link>
+                <Link to="/my-properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
                   <FolderOpen className="w-4 h-4" />
                   <span>My Properties</span>
-                </a>
+                </Link>
               </>
             )}
 
             {isAdmin() && (
-              <a href="/admin" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+              <Link to="/admin" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
                 <Settings className="w-4 h-4" />
                 <span>Admin</span>
-              </a>
+              </Link>
             )}
           </div>
 
@@ -73,10 +66,10 @@ const Navbar = () => {
           <div className="hidden lg:flex items-center gap-3">
             {user ? (
               <>
-                <a href="/properties/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
+                <Link to="/properties/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
                   <Plus className="w-4 h-4" />
                   Post Property
-                </a>
+                </Link>
 
                 <div className="relative">
                   <button
@@ -104,13 +97,13 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-sm font-medium border border-gray-200">
+                <Link to="/login" className="inline-flex items-center gap-2 px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-sm font-medium border border-gray-200">
                   <LogIn className="w-4 h-4" />
                   Sign In
-                </a>
-                <a href="/signup" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
+                </Link>
+                <Link to="/signup" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
                   Sign Up
-                </a>
+                </Link>
               </>
             )}
           </div>
@@ -129,42 +122,42 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-gray-200 bg-white">
           <div className="px-4 py-4 space-y-1">
-            <a href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
               <Home className="w-5 h-5" />
               <span className="font-medium">Home</span>
-            </a>
-            <a href="/properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+            </Link>
+            <Link to="/properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
               <Building2 className="w-5 h-5" />
               <span className="font-medium">Properties</span>
-            </a>
+            </Link>
 
             {user && (
               <>
-                <a href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <Link to="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
                   <Heart className="w-5 h-5" />
                   <span className="font-medium">Favorites</span>
-                </a>
-                <a href="/my-properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                </Link>
+                <Link to="/my-properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
                   <FolderOpen className="w-5 h-5" />
                   <span className="font-medium">My Properties</span>
-                </a>
+                </Link>
               </>
             )}
 
             {isAdmin() && (
-              <a href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+              <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
                 <Settings className="w-5 h-5" />
                 <span className="font-medium">Admin</span>
-              </a>
+              </Link>
             )}
 
             <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
               {user ? (
                 <>
-                  <a href="/properties/new" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                  <Link to="/properties/new" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                     <Plus className="w-5 h-5" />
                     Post Property
-                  </a>
+                  </Link>
                   <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <User className="w-4 h-4 text-blue-600" />
@@ -178,13 +171,13 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <a href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                  <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                     <LogIn className="w-5 h-5" />
                     Sign In
-                  </a>
-                  <a href="/signup" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                  </Link>
+                  <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                     Sign Up
-                  </a>
+                  </Link>
                 </>
               )}
             </div>

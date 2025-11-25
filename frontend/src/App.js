@@ -12,6 +12,8 @@ import PropertyForm from './pages/PropertyForm';
 import MyProperties from './pages/MyProperties';
 import Favorites from './pages/Favorites';
 import AdminDashboard from './pages/AdminDashboard';
+import About from './pages/About';
+import Contact from './pages/Contact';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
               <Route path="/my-properties" element={<MyProperties />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
             </Routes>
           </main>
           <Footer />
