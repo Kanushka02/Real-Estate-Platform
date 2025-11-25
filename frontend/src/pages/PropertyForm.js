@@ -124,18 +124,31 @@ const PropertyForm = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">
-        {isEdit ? 'Edit Property' : 'Post New Property'}
-      </h1>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+    <div className="bg-gray-50 min-h-screen py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">
+            {isEdit ? '✏️ Edit Property' : '📝 Post New Property'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {isEdit 
+              ? 'Update your property information' 
+              : 'List your property to reach thousands of buyers and renters'}
+          </p>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-lg mb-6 flex items-start gap-2">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <p className="font-semibold text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="card shadow-md p-8 space-y-8">
         {/* Basic Information */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
@@ -389,23 +402,24 @@ const PropertyForm = () => {
         </div>
         {/* ------------------------------------------------------- */}
 
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary disabled:opacity-50"
+            className="btn-primary flex-1 sm:flex-none py-3"
           >
-            {loading ? 'Saving...' : (isEdit ? 'Update Property' : 'Post Property')}
+            {loading ? '⏳ Saving...' : (isEdit ? '✏️ Update Property' : '✅ Post Property')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/my-properties')}
-            className="btn-secondary"
+            className="btn-secondary flex-1 sm:flex-none py-3"
           >
-            Cancel
+            ✕ Cancel
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

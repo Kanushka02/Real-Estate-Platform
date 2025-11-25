@@ -1,130 +1,193 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Home, Building2, Heart, FolderOpen, Settings, Plus, LogOut, Menu, X, User, LogIn } from 'lucide-react';
+
+// Mock hooks for demonstration
+const useAuth = () => ({
+  user: { username: 'JohnDoe' },
+  logout: () => console.log('Logged out'),
+  isAdmin: () => false
+});
+
+const useNavigate = () => (path) => console.log('Navigate to:', path);
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
   };
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo Section */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary-600">🏠 RealEstate</span>
-            </Link>
-            
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                Home
-              </Link>
-              <Link to="/properties" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                Properties
-              </Link>
-              {user && (
-                <>
-                  <Link to="/favorites" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Favorites
-                  </Link>
-                  <Link to="/my-properties" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                    My Properties
-                  </Link>
-                </>
-              )}
-              {isAdmin() && (
-                <Link to="/admin" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Admin
-                </Link>
-              )}
-            </div>
+            <a href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
+                <Home className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-semibold text-gray-900">RealEstate</span>
+            </a>
           </div>
-          
-          <div className="hidden md:flex md:items-center md:space-x-4">
+
+          {/* Desktop Navigation - Center */}
+          <div className="hidden lg:flex items-center gap-1">
+            <a href="/" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </a>
+            <a href="/properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+              <Building2 className="w-4 h-4" />
+              <span>Properties</span>
+            </a>
+
+            {user && (
+              <>
+                <a href="/favorites" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+                  <Heart className="w-4 h-4" />
+                  <span>Favorites</span>
+                </a>
+                <a href="/my-properties" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+                  <FolderOpen className="w-4 h-4" />
+                  <span>My Properties</span>
+                </a>
+              </>
+            )}
+
+            {isAdmin() && (
+              <a href="/admin" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 text-sm font-medium">
+                <Settings className="w-4 h-4" />
+                <span>Admin</span>
+              </a>
+            )}
+          </div>
+
+          {/* Desktop Action Items - Right */}
+          <div className="hidden lg:flex items-center gap-3">
             {user ? (
               <>
-                <Link to="/properties/new" className="btn-primary">
+                <a href="/properties/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
+                  <Plus className="w-4 h-4" />
                   Post Property
-                </Link>
-                <span className="text-gray-700 text-sm">Welcome, {user.username}</span>
-                <button onClick={handleLogout} className="btn-secondary">
-                  Logout
-                </button>
+                </a>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-200"
+                  >
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium">{user.username}</span>
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
-                <Link to="/login" className="btn-secondary">
-                  Login
-                </Link>
-                <Link to="/signup" className="btn-primary">
+                <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-sm font-medium border border-gray-200">
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </a>
+                <a href="/signup" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium shadow-sm">
                   Sign Up
-                </Link>
+                </a>
               </>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-700 hover:text-primary-600"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-              Home
-            </Link>
-            <Link to="/properties" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-              Properties
-            </Link>
+        <div className="lg:hidden border-t border-gray-200 bg-white">
+          <div className="px-4 py-4 space-y-1">
+            <a href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+              <Home className="w-5 h-5" />
+              <span className="font-medium">Home</span>
+            </a>
+            <a href="/properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+              <Building2 className="w-5 h-5" />
+              <span className="font-medium">Properties</span>
+            </a>
+
             {user && (
               <>
-                <Link to="/favorites" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                  Favorites
-                </Link>
-                <Link to="/my-properties" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                  My Properties
-                </Link>
-                <Link to="/properties/new" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                  Post Property
-                </Link>
+                <a href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                  <Heart className="w-5 h-5" />
+                  <span className="font-medium">Favorites</span>
+                </a>
+                <a href="/my-properties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                  <FolderOpen className="w-5 h-5" />
+                  <span className="font-medium">My Properties</span>
+                </a>
               </>
             )}
+
             {isAdmin() && (
-              <Link to="/admin" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                Admin
-              </Link>
+              <a href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <Settings className="w-5 h-5" />
+                <span className="font-medium">Admin</span>
+              </a>
             )}
-            {user ? (
-              <button onClick={handleLogout} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                Logout
-              </button>
-            ) : (
-              <>
-                <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                  Login
-                </Link>
-                <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50">
-                  Sign Up
-                </Link>
-              </>
-            )}
+
+            <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
+              {user ? (
+                <>
+                  <a href="/properties/new" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    <Plus className="w-5 h-5" />
+                    Post Property
+                  </a>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{user.username}</span>
+                  </div>
+                  <button onClick={handleLogout} className="flex items-center justify-center gap-2 w-full px-5 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                    <LogOut className="w-5 h-5" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <a href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                    <LogIn className="w-5 h-5" />
+                    Sign In
+                  </a>
+                  <a href="/signup" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Sign Up
+                  </a>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -133,4 +196,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
