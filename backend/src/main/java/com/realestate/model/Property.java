@@ -3,17 +3,20 @@ package com.realestate.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data; // Ensure Data is imported
+import lombok.NoArgsConstructor; // Ensure NoArgsConstructor is imported
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "properties")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Property {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,24 +59,17 @@ public class Property {
     public Integer bathrooms;
     
     @Column(precision = 10, scale = 2)
-    public BigDecimal landSize; // in perches
+    public BigDecimal landSize; 
     
     @Column(precision = 10, scale = 2)
-    public BigDecimal floorSize; // in sq ft
+    public BigDecimal floorSize; 
     
     public Integer parkingSpaces;
     
-    // Keep images field for backward compatibility with existing DB data
-    @Column(columnDefinition = "TEXT")
-    public String images; // JSON array of image URLs or base64 data
-    
-    // New image fields for proper photo handling
-    public String imageName; // Original filename of the image
-    public String imageType; // MIME type of the image (e.g., "image/jpeg", "image/png")
-    
-    @Lob
-    public byte[] imageData; // Binary data of the image
-    
+    // --- CHANGED: One Property has Many Images ---
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<PropertyImage> images = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     public User owner;
@@ -93,33 +89,12 @@ public class Property {
     @Column(nullable = false)
     public LocalDateTime updatedAt = LocalDateTime.now();
     
-    // No manual constructors needed - using Lombok @NoArgsConstructor
-    
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
     
-    public enum PropertyType {
-        HOUSE,
-        APARTMENT,
-        LAND,
-        COMMERCIAL,
-        VILLA,
-        CONDO
-    }
-    
-    public enum ListingType {
-        SALE,
-        RENT
-    }
-    
-    public enum PropertyStatus {
-        PENDING,
-        APPROVED,
-        REJECTED,
-        SOLD,
-        RENTED
-    }
+    public enum PropertyType { HOUSE, APARTMENT, LAND, COMMERCIAL, VILLA, CONDO }
+    public enum ListingType { SALE, RENT }
+    public enum PropertyStatus { PENDING, APPROVED, REJECTED, SOLD, RENTED }
 }
-

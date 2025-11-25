@@ -16,7 +16,8 @@ import AdminDashboard from './pages/AdminDashboard';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      {/* Added future flags to silence warnings */}
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <main className="flex-grow">
@@ -41,4 +42,3 @@ function App() {
 }
 
 export default App;
-

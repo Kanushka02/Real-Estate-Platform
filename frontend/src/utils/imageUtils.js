@@ -3,6 +3,53 @@
  */
 
 /**
+ * Get image source for display
+ * UPDATED: Prioritizes the new URL-based list (Multiple Photos), then falls back to legacy data
+ * @param {Object} property - Property object from API
+ * @returns {string} Image source URL
+ */
+export const getImageSource = (property) => {
+  if (!property) return 'https://placehold.co/400x300?text=No+Image';
+
+  // 1. CHECK FOR NEW SYSTEM: List of URLs
+  if (property.imageUrls && Array.isArray(property.imageUrls) && property.imageUrls.length > 0) {
+    // Filter out empty strings and return first valid URL
+    const validUrl = property.imageUrls.find(url => url && url.trim() !== '');
+    if (validUrl) {
+      return validUrl;
+    }
+  }
+
+  // 2. CHECK FOR LEGACY SYSTEM: Byte Array
+  if (property.imageData) {
+    return byteArrayToDataURL(property.imageData, property.imageType);
+  }
+
+  // 3. CHECK FOR LEGACY SYSTEM: Strings
+  if (property.image) return property.image;
+  if (property.photo) return property.photo;
+
+  // 4. Fallback (Updated to a working service)
+  return 'https://placehold.co/400x300?text=No+Image'; 
+};
+
+/**
+ * Get all images for a property (for gallery/carousel)
+ * @param {Object} property - Property object from API
+ * @returns {Array} Array of valid image URLs
+ */
+export const getAllPropertyImages = (property) => {
+  if (!property) return [];
+
+  // Return imageUrls if available
+  if (property.imageUrls && Array.isArray(property.imageUrls)) {
+    return property.imageUrls.filter(url => url && url.trim() !== '');
+  }
+
+  return [];
+};
+
+/**
  * Convert byte array to base64 data URL for display
  * @param {Array} imageData - Byte array of image data
  * @param {string} mimeType - MIME type of the image (e.g., 'image/jpeg')
@@ -20,78 +67,6 @@ export const byteArrayToDataURL = (imageData, mimeType = 'image/jpeg') => {
     console.error('Error converting byte array to data URL:', error);
     return null;
   }
-};
-
-/**
- * Convert file to byte array for upload
- * @param {File} file - File object from input
- * @returns {Promise<Array>} Promise that resolves to byte array
- */
-export const fileToByteArray = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const arrayBuffer = e.target.result;
-      const byteArray = new Uint8Array(arrayBuffer);
-      resolve(Array.from(byteArray));
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-};
-
-/**
- * Get image source for display
- * @param {Object} property - Property object
- * @returns {string} Image source URL
- */
-export const getImageSource = (property) => {
-  if (!property) {
-    return '/no-image.png';
-  }
-
-  // If we have image data directly in the property object
-  if (property.imageData && property.imageType) {
-    return byteArrayToDataURL(property.imageData, property.imageType);
-  }
-
-  // If we have an ID, use the image endpoint
-  if (property.id) {
-    return `${process.env.REACT_APP_API_URL || 'http://localhost:8083/api'}/properties/${property.id}/image`;
-  }
-
-  return '/no-image.png';
-};
-
-/**
- * Get image source with photo fetching support
- * @param {Object} property - Property object
- * @param {Function} fetchPhoto - Function to fetch photo from API
- * @returns {Promise<string>} Promise that resolves to image source URL
- */
-export const getImageSourceWithFetch = async (property, fetchPhoto) => {
-  // Handle new image fields first
-  if (property.imageData) {
-    return byteArrayToDataURL(property.imageData, property.imageType);
-  }
-  
-  // Try to fetch photo from API if property has ID
-  if (property.id && fetchPhoto) {
-    try {
-      const photoBlob = await fetchPhoto(property.id, 1); // Assuming photoId = 1 for now
-      return URL.createObjectURL(photoBlob);
-    } catch (error) {
-      console.warn('Failed to fetch photo from API:', error);
-    }
-  }
-  
-  // Fallback to legacy image fields
-  if (property.image || property.photo) {
-    return property.image || property.photo;
-  }
-  
-  // Default no-image placeholder
-  return '/no-image.png';
 };
 
 /**
@@ -121,4 +96,18 @@ export const getFileSizeMB = (file) => {
 export const isValidImageSize = (file) => {
   const maxSizeMB = 5;
   return file.size <= maxSizeMB * 1024 * 1024;
+};
+
+// Note: fileToByteArray is removed or deprecated as we now upload files directly via FormData
+export const fileToByteArray = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const arrayBuffer = e.target.result;
+      const byteArray = new Uint8Array(arrayBuffer);
+      resolve(Array.from(byteArray));
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
 };

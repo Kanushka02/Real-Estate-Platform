@@ -2,11 +2,15 @@ package com.realestate.config;
 
 import com.realestate.model.Role;
 import com.realestate.repository.RoleRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import lombok.Data;
+
 @Component
+@Data
 public class DataInitializer implements CommandLineRunner {
     
     @Autowired

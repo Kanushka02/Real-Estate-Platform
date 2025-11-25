@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { propertyAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { DISTRICTS, PROPERTY_TYPES, LISTING_TYPES } from '../utils/constants';
-import { fileToByteArray, getImageSource, isValidImageType, isValidImageSize, getFileSizeMB } from '../utils/imageUtils';
+// Note: We are removing single-file validators for this step to keep multiple-upload simple
+import { getImageSource } from '../utils/imageUtils'; 
 
 const PropertyForm = () => {
   const { id } = useParams();
@@ -27,15 +28,15 @@ const PropertyForm = () => {
     parkingSpaces: '',
   });
 
-  // Image handling state
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // --- CHANGED: State to handle multiple files instead of one ---
+  const [selectedFiles, setSelectedFiles] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null); // Kept for existing image in Edit mode
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
@@ -65,7 +66,7 @@ const PropertyForm = () => {
         parkingSpaces: property.parkingSpaces || '',
       });
 
-      // Handle existing image data using utility function
+      // Handle existing image data for display
       const imageSource = getImageSource(property);
       if (imageSource !== '/no-image.png') {
         setImagePreview(imageSource);
@@ -83,31 +84,12 @@ const PropertyForm = () => {
     });
   };
 
-  // Image handling functions
+  // --- CHANGED: Handle Multiple Files ---
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!isValidImageType(file)) {
-        setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
-        return;
-      }
-      
-      // Validate file size
-      if (!isValidImageSize(file)) {
-        setError(`File size too large. Maximum size is 5MB. Current size: ${getFileSizeMB(file)}MB`);
-        return;
-      }
-      
-      setSelectedImage(file);
-      setError(''); // Clear any previous errors
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    // Capture the entire FileList object
+    if (e.target.files && e.target.files.length > 0) {
+        setSelectedFiles(e.target.files);
+        setError('');
     }
   };
 
@@ -117,18 +99,19 @@ const PropertyForm = () => {
     setLoading(true);
 
     try {
-      // Submit property data without image
+      // 1. Submit property data (Text data)
       let propertyResponse;
       if (isEdit) {
-        propertyResponse = await propertyAPI.update(id, formData);
+        await propertyAPI.update(id, formData);
       } else {
         propertyResponse = await propertyAPI.create(formData);
       }
 
-      // Upload photo separately if selected
-      if (selectedImage) {
+      // --- CHANGED: Upload Multiple Photos ---
+      // We use the new uploadPhotos method created in api.js
+      if (selectedFiles && selectedFiles.length > 0) {
         const propertyId = isEdit ? id : propertyResponse.data.id;
-        await propertyAPI.uploadPhoto(propertyId, selectedImage, true); // true = isPrimary
+        await propertyAPI.uploadPhotos(propertyId, selectedFiles);
       }
 
       navigate('/my-properties');
@@ -372,39 +355,39 @@ const PropertyForm = () => {
           </div>
         </div>
 
-        {/* Additional Information */}
+        {/* --- CHANGED: Additional Information (Multiple Photos) --- */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Additional Information</h2>
+          <h2 className="text-xl font-semibold mb-4">Photos</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add Photo
+                Add Photos (Hold Ctrl to select multiple)
               </label>
+              
+              {/* CHANGED: Added 'multiple' attribute */}
               <input 
                 type="file" 
+                multiple
                 name="photo" 
                 accept="image/*" 
                 onChange={handleImageChange}
                 className="input-field" 
               />
-              {imagePreview && (
-                <div className="mt-2">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="w-32 h-32 object-cover rounded-lg border"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Selected: {selectedImage?.name}
-                  </p>
+
+              {/* Display selected file count */}
+              {selectedFiles && selectedFiles.length > 0 && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                  ✅ {selectedFiles.length} files selected
                 </div>
               )}
+
               <p className="text-xs text-gray-500 mt-1">
-                Upload a photo of the property (supports JPEG, PNG, GIF formats).
+                Upload photos of the property (supports JPEG, PNG, GIF formats).
               </p>
             </div>
           </div>
         </div>
+        {/* ------------------------------------------------------- */}
 
         <div className="flex space-x-4">
           <button
@@ -428,4 +411,3 @@ const PropertyForm = () => {
 };
 
 export default PropertyForm;
-

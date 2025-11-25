@@ -3,75 +3,93 @@ import { Link } from 'react-router-dom';
 import { formatPrice, STATUS_COLORS } from '../utils/constants';
 import { getImageSource } from '../utils/imageUtils';
 
-const PropertyCard = ({ property, showStatus = false }) => {
-  // Use utility function to get image source
+const PropertyCard = ({ property, showStatus = false, onDelete, onToggleStatus, showActions = false }) => {
+  
   const mainImage = getImageSource(property);
-  const defaultImage = '/no-image.png';
 
   return (
-    <div className="card hover:shadow-xl transition-shadow duration-300">
-      <div className="relative">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+      <div className="relative h-48 w-full bg-gray-200">
         <img
           src={mainImage}
           alt={property.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-full object-cover"
           onError={(e) => {
-            console.warn('Image failed to load:', property.id);
-            e.target.src = defaultImage;
-            e.target.onerror = null; // Prevent infinite loop
+            // CHANGED: Use placehold.co instead of via.placeholder.com
+            e.target.onerror = null; 
+            e.target.src = 'https://placehold.co/400x300?text=Image+Error';
           }}
-          loading="lazy"
         />
+        
+        {/* ... rest of the component remains the same ... */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow">
+                {property.listingType}
+            </span>
+        </div>
+
         {showStatus && property.status && (
-          <span className={`badge absolute top-2 right-2 ${STATUS_COLORS[property.status]}`}>
+          <span className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded shadow ${STATUS_COLORS[property.status]}`}>
             {property.status}
           </span>
         )}
-        <span className="badge absolute top-2 left-2 bg-primary-600 text-white">
-          {property.listingType}
-        </span>
       </div>
       
-      <div className="p-4">
-        <h3 className="text-xl font-semibold text-gray-900 mb-2 truncate">
+      {/* Content Section */}
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">
           {property.title}
         </h3>
         
-        <p className="text-gray-600 text-sm mb-2">
+        <p className="text-gray-500 text-sm mb-3 flex items-center truncate">
           📍 {property.city}, {property.district}
         </p>
         
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-2xl font-bold text-primary-600">
+        <div className="flex items-center justify-between mb-3 mt-auto">
+          <span className="text-xl font-bold text-blue-600">
             {formatPrice(property.price)}
           </span>
-          <span className="badge bg-gray-100 text-gray-800">
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded uppercase font-medium">
             {property.type}
           </span>
         </div>
         
-        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-          {property.bedrooms && (
-            <span>🛏️ {property.bedrooms} Beds</span>
-          )}
-          {property.bathrooms && (
-            <span>🚿 {property.bathrooms} Baths</span>
-          )}
-          {property.landSize && (
-            <span>📏 {property.landSize} perches</span>
-          )}
+        <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-3 mb-3">
+          {property.bedrooms && <span>🛏️ {property.bedrooms} Beds</span>}
+          {property.bathrooms && <span>🚿 {property.bathrooms} Baths</span>}
+          {property.landSize && <span>📏 {property.landSize} perches</span>}
         </div>
         
-        <Link
-          to={`/properties/${property.id}`}
-          className="block w-full text-center btn-primary"
-        >
-          View Details
-        </Link>
+        <div className="flex gap-2 mt-2">
+            {!showActions ? (
+                <Link
+                    to={`/properties/${property.id}`}
+                    className="w-full bg-blue-600 text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                >
+                    View Details
+                </Link>
+            ) : (
+                <>
+                    <Link 
+                        to={`/properties/edit/${property.id || property.propertyId}`} 
+                        className="flex-1 bg-gray-200 text-gray-700 text-center py-2 rounded-lg text-sm font-medium hover:bg-gray-300"
+                    >
+                        Edit
+                    </Link>
+                    {onDelete && (
+                        <button 
+                            onClick={() => onDelete(property.id || property.propertyId)}
+                            className="flex-1 bg-red-600 text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+                        >
+                            Delete
+                        </button>
+                    )}
+                </>
+            )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default PropertyCard;
-

@@ -3,40 +3,38 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { propertyAPI, favoriteAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice, STATUS_COLORS } from '../utils/constants';
-import { getImageSource } from '../utils/imageUtils';
 
 const PropertyDetails = () => {
   const { id } = useParams();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // CHANGED: State to track the currently displayed image
+  const [activeImage, setActiveImage] = useState(null);
 
   useEffect(() => {
     fetchProperty();
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       checkFavorite();
     }
   }, [id]);
 
   const fetchProperty = async () => {
     try {
-      const [propertyResponse, imageResponse] = await Promise.all([
-        propertyAPI.getById(id),
-        propertyAPI.getPropertyImage(id)
-      ]);
+      const response = await propertyAPI.getById(id);
+      const data = response.data;
+      setProperty(data);
       
-      const propertyData = propertyResponse.data;
-      
-      // Add image data to property
-      if (imageResponse.data) {
-        propertyData.imageData = Array.from(new Uint8Array(imageResponse.data));
-        propertyData.imageType = imageResponse.headers['content-type'];
+      // CHANGED: Set the first image as active immediately
+      if (data.imageUrls && data.imageUrls.length > 0) {
+        setActiveImage(data.imageUrls[0]);
+      } else {
+        setActiveImage('/no-image.png');
       }
-      
-      setProperty(propertyData);
     } catch (error) {
       console.error('Error fetching property:', error);
     } finally {
@@ -54,7 +52,7 @@ const PropertyDetails = () => {
   };
 
   const handleFavoriteToggle = async () => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
@@ -88,20 +86,46 @@ const PropertyDetails = () => {
     );
   }
 
-  // Use utility function to get image source
-  const mainImage = getImageSource(property);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Image Display */}
+      
+      {/* --- CHANGED: Image Gallery Section --- */}
       <div className="mb-8">
-        <img
-          src={mainImage}
-          alt={property.title}
-          className="w-full h-96 object-cover rounded-lg mb-4"
-          onError={(e) => { e.target.src = 'https://via.placeholder.com/800x400?text=No+Image+Available'; }}
-        />
+        {/* Main Large Image */}
+        <div className="w-full h-[500px] mb-4 overflow-hidden rounded-xl shadow-lg relative bg-gray-100">
+            <img
+                src={activeImage}
+                alt={property.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.src = '/no-image.png'; }}
+            />
+            <span className={`absolute top-4 left-4 badge ${STATUS_COLORS[property.status]}`}>
+                {property.status}
+            </span>
+        </div>
+
+        {/* Thumbnail Strip */}
+        {property.imageUrls && property.imageUrls.length > 1 && (
+            <div className="grid grid-cols-5 md:grid-cols-8 gap-2">
+                {property.imageUrls.map((url, index) => (
+                    <div 
+                        key={index}
+                        onClick={() => setActiveImage(url)}
+                        className={`cursor-pointer h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                            activeImage === url ? 'border-primary-600 opacity-100 scale-105' : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
+                    >
+                        <img 
+                            src={url} 
+                            alt={`Thumbnail ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                ))}
+            </div>
+        )}
       </div>
+      {/* -------------------------------------- */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
@@ -113,7 +137,7 @@ const PropertyDetails = () => {
             </div>
             <button
               onClick={handleFavoriteToggle}
-              className={`text-2xl ${isFavorite ? 'text-red-500' : 'text-gray-400'} hover:scale-110 transition`}
+              className={`text-3xl ${isFavorite ? 'text-red-500' : 'text-gray-300 hover:text-red-300'} transition`}
             >
               {isFavorite ? '❤️' : '🤍'}
             </button>
@@ -164,31 +188,34 @@ const PropertyDetails = () => {
 
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-3">Description</h2>
-            <p className="text-gray-700 whitespace-pre-line">{property.description}</p>
+            <p className="text-gray-700 whitespace-pre-line leading-relaxed">{property.description}</p>
           </div>
-
-          {/* REMOVE: Features Section */}
         </div>
 
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="card p-6 sticky top-4">
+          <div className="card p-6 sticky top-4 shadow-md border border-gray-100">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Contact Owner</h3>
             
-            <div className="mb-4">
-              <p className="text-gray-600 mb-2">Listed by:</p>
-              <p className="font-semibold">{property.ownerName}</p>
+            <div className="mb-6 flex items-center">
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl mr-3">
+                👤
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Listed by</p>
+                <p className="font-semibold text-lg">{property.ownerName}</p>
+              </div>
             </div>
 
-            <button className="w-full btn-primary mb-3">
-              📞 Call Owner
+            <button className="w-full btn-primary mb-3 py-3 flex justify-center items-center gap-2">
+              <span>📞</span> Call Owner
             </button>
-            <button className="w-full btn-secondary mb-3">
-              ✉️ Send Message
+            <button className="w-full btn-secondary mb-3 py-3 flex justify-center items-center gap-2">
+              <span>✉️</span> Send Message
             </button>
 
             <div className="border-t pt-4 mt-4">
-              <h4 className="font-semibold mb-2">Property Details</h4>
+              <h4 className="font-semibold mb-2 text-gray-700">Property Summary</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Property ID:</span>
@@ -222,4 +249,3 @@ const PropertyDetails = () => {
 };
 
 export default PropertyDetails;
-
