@@ -212,7 +212,16 @@ public class PropertyService {
     @Transactional
     public void deleteProperty(Long id, String username) {
         // Your existing delete logic
-        Property property = propertyRepository.findById(id).orElseThrow();
+        Property property = propertyRepository.findById(id).orElseThrow(() -> new RuntimeException("Property not found"));
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!property.getOwner().getId().equals(user.getId()) && 
+            !user.getRoles().stream().anyMatch(r -> r.getName().name().equals("ROLE_ADMIN"))) {
+            throw new RuntimeException("Not authorized to delete this property");
+        }
+        
         propertyRepository.delete(property);
     }
     
