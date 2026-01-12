@@ -214,79 +214,8 @@ The system supports all 25 districts:
 - CORS enabled for frontend
 - Token expiration: 24 hours
 
-## 📸 Screenshots
 
-*(Add screenshots of your application here)*
 
-## 🧪 Testing
-
-### Backend
-```bash
-cd backend
-mvn test
-```
-
-### Frontend
-```bash
-cd frontend
-npm test
-```
-
-## 📦 Production Build
-
-### Backend
-```bash
-cd backend
-mvn clean package
-java -jar target/realestate-backend-1.0.0.jar
-```
-
-### Frontend
-```bash
-cd frontend
-npm run build
-# Deploy the 'build' folder to your hosting service
-```
-
-## 🌐 Environment Variables
-
-### Backend (application.properties)
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/realestate_db
-spring.datasource.username=postgres
-spring.datasource.password=your_password
-jwt.secret=your_jwt_secret_key_here
-jwt.expiration=86400000
-cors.allowed.origins=http://localhost:3000
-```
-
-### Frontend
-Update API URL in `frontend/src/services/api.js` if needed:
-```javascript
-const API_URL = 'http://localhost:8080/api';
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
-## 👨‍💻 Author
-
-Built with ❤️ for the Sri Lankan real estate market
-
-## 🐛 Known Issues
-
-- Image upload is currently handled via URL input (future: implement file upload)
-- Email notifications not yet implemented
-- Property analytics dashboard planned for future release
 
 ## 🚀 Future Enhancements
 
@@ -300,10 +229,4 @@ Built with ❤️ for the Sri Lankan real estate market
 - [ ] Property verification system
 - [ ] Review and rating system
 
-## 📞 Support
 
-For support, email support@realestate.lk or create an issue in the repository.
-
----
-
-**Happy Property Hunting! 🏡**
